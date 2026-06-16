@@ -1,0 +1,16 @@
+[project]
+name = "spatialpeeler"
+version = "0.1.0"
+dependencies = [
+    "plotnine",
+    "numpy",
+    "pandas",
+    "scanpy",
+    "scipy",
+    "scikit-learn",
+    "statsmodels",
+]
+
+[build-system]
+requires = ["uv_build<0.12"]
+build-backend = "uv_build"

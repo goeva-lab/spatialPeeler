@@ -1,0 +1,189 @@
+from collections.abc import Callable
+from warnings import catch_warnings
+
+import numpy as np
+import pandas as pd
+import scanpy as sc
+from scipy.cluster.vq import kmeans2
+from scipy.special import xlogy
+from scipy.stats import zscore
+from statsmodels import api as sm
+from statsmodels.base.model import Model, Results
+
+PAT_KEY = "sP_pat"
+BIN_KEY = "sP_bin"
+INP_KEY = "sP_inp"
+
+
+def wcorr(x: np.ndarray, y: np.ndarray, w: np.ndarray | None = None) -> np.ndarray:
+    with catch_warnings(action="ignore", category=RuntimeWarning):
+        return np.cov(x, y, aweights=w)[0, 1] / np.sqrt(np.cov(x, aweights=w) * np.cov(y, aweights=w))
+
+
+def fit_sm(X: np.ndarray, y: np.ndarray, with_intercept: bool, model: type[Model]) -> Results:
+    if with_intercept:
+        X = np.vstack([X, np.ones((X.shape[0],))]).T
+    return model(y, X).fit(disp=False)  # ty:ignore[unknown-argument]
+
+
+def run_bin(x: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    cents, clusts = kmeans2(x[mask], 2, minit="++")
+    if cents[0] > cents[1]:
+        clusts = ~clusts
+    out = np.copy(mask)
+    out[mask] = clusts
+    return out.astype(bool)
+
+
+def run_fact_reg(
+    adata: sc.AnnData,
+    y_key: str,
+    ctl_val: object,
+    k: int,
+    out_key: str,
+    X_key: str = "X_nmf",
+    filt: Callable[[sc.AnnData], sc.AnnData] | None = None,
+) -> None:
+    """
+    runs the first step of the spatialPeeler process by:
+    - logistic regression on condition labels w/ an embedding subspace + intercept as model inputs
+    - adding per cell outputs to input ``.obsm`` slot
+    - adding model coefficients, p-values, mean standard error, and cross-entropy loss values to input ``.uns`` slot
+
+    :param adata: input data, must not be a view, will be mutated
+    :param y_key: ``.obsm`` key to fetch condition labels from
+    :param ctl_val: condition label corresponding to control
+    :param k: dimension of embedding to analyze
+    :param out_key: key used to insert outputs into input ``adata``, will be added to both ``.uns`` and ``.obsm``
+    :param X_key: adata ``.obsm`` key to fetch embeddings from, defaults to ``"X_nmf"``
+    :param filt: optional callable to subset data prior to running step, defaults to ``None``
+
+    :raises ValueError: if input data is a view
+    """
+    if adata.is_view:
+        raise ValueError(
+            "input anndata object _must not_ be a view, "
+            "use `filt` argument to run analysis on subset of data"
+            " (this function mutates its input directly)"
+        )
+
+    if filt is None:
+        mod = fit_sm(
+            adata.obsm[X_key][:, k],
+            (adata.obs[y_key] != ctl_val).to_numpy(),  # ty:ignore[unresolved-attribute]
+            True,
+            sm.Logit,
+        )
+        y, pat_vec = mod.model.endog, mod.predict(mod.model.exog)
+        adata.obsm[out_key] = pd.DataFrame(
+            {"cell": adata.obs_names, PAT_KEY: pat_vec, BIN_KEY: run_bin(pat_vec, y), INP_KEY: mod.model.exog[:, 0]}
+        ).set_index("cell")
+    else:
+        idx = adata.obs.index.get_indexer_for(filt(adata).obs.index)
+        adata_s = adata[idx, :]
+        mod = fit_sm(
+            adata_s.obsm[X_key][:, k],
+            (adata_s.obs[y_key] != ctl_val).to_numpy(),  # ty:ignore[unresolved-attribute]
+            True,
+            sm.Logit,
+        )
+        y, pat_vec = mod.model.endog, mod.predict(mod.model.exog)
+        # @TODO: find a better way to construct a SparseIndex (???)
+        sp_index = type(pd.arrays.SparseArray([]).sp_index)(adata.n_obs, idx)  # ty:ignore[too-many-positional-arguments]
+        adata.obsm[out_key] = pd.DataFrame(
+            {
+                "cell": adata.obs_names,
+                PAT_KEY: pd.arrays.SparseArray(pat_vec, sp_index, fill_value=np.nan),
+                BIN_KEY: pd.arrays.SparseArray(run_bin(pat_vec, y), sp_index, fill_value=np.nan),
+                INP_KEY: pd.arrays.SparseArray(mod.model.exog[:, 0], sp_index, fill_value=np.nan),
+            }
+        ).set_index("cell")
+
+    adata.uns[out_key] = {
+        "beta": mod.params[0],
+        "pval": mod.pvalues[0],  # ty:ignore[unresolved-attribute]
+        "mse": np.sum(np.square(y - pat_vec)),
+        "loss": np.sum(-(xlogy(y, pat_vec) + xlogy(1 - y, 1 - pat_vec))),
+    }
+
+
+def run_gene_reg(
+    adata: sc.AnnData,
+    sp_step1_key: str,
+    out_key: str,
+    layer: str | None = None,
+) -> None:
+    """
+    runs the second step of the spatialPeeler process by:
+    - running correlation and regression-based (via OLS) differential expression analyses between
+      each gene and model outputs generated from the previous spatialPeeler step
+    - adding resulting outputs to the input ``.varm`` slot
+
+    :param adata: input data, already processed by :func:`run_fact_reg`, must not be a view, will be mutated
+    :param sp_step1_key: ``.obsm`` key used by :func:`run_fact_reg` to store its outputs
+    :param out_key: ``.varm`` key used to store outputs
+    :param layer: optional, layer to use to fetch gene counts instead of ``.X``, defaults to ``None``
+
+    :raises ValueError: if input adata is a view
+    """
+    if adata.is_view:
+        raise ValueError("input anndata object _must not_ be a view (this function mutates its input directly)")
+
+    X = adata.X if layer is None else adata.layers[layer]
+
+    sp_out = adata.obsm[sp_step1_key]
+    w_vec = sp_out[INP_KEY].array
+    pat_vec = sp_out[PAT_KEY].array
+
+    if isinstance(w_vec, pd.arrays.SparseArray):
+        assert w_vec.sp_index is pat_vec.sp_index
+        X = X[w_vec.sp_index.indices, :]  # ty:ignore[not-subscriptable]
+        w_vec, pat_vec = w_vec.sp_values, pat_vec.sp_values
+    else:
+        w_vec, pat_vec = w_vec.to_numpy(), pat_vec.to_numpy()
+
+    z_pat_vec = zscore(pat_vec)
+
+    corr_arr = np.full((adata.n_vars,), np.nan)
+    wcorr_arr = np.full((adata.n_vars,), np.nan)
+    out_keys = ("beta", "pval", "rsq")
+    preg_arrs = (
+        np.full((adata.n_vars,), np.nan),
+        np.full((adata.n_vars,), np.nan),
+        np.full((adata.n_vars,), np.nan),
+    )
+    zpreg_arrs = (
+        np.full((adata.n_vars,), np.nan),
+        np.full((adata.n_vars,), np.nan),
+        np.full((adata.n_vars,), np.nan),
+    )
+
+    for j in range(X.shape[1]):  # ty: ignore[unresolved-attribute]
+        gvec = X[:, j]  # ty: ignore[not-subscriptable, invalid-argument-type]
+        if not isinstance(gvec, np.ndarray):
+            gvec = gvec.toarray()  # ty: ignore[unresolved-attribute]
+
+        corr_arr[j] = wcorr(gvec, pat_vec)
+        wcorr_arr[j] = wcorr(gvec, pat_vec, w_vec)
+
+        preg = fit_sm(pat_vec, gvec, True, sm.OLS)
+        preg_arrs[0][j] = preg.params[0]
+        preg_arrs[1][j] = preg.pvalues[0]  # ty:ignore[unresolved-attribute]
+        preg_arrs[2][j] = preg.rsquared  # ty:ignore[unresolved-attribute]
+
+        z_gvec = zscore(gvec)
+        z_index = np.nonzero(np.isfinite(z_gvec))[0]
+        if z_index.size > 0:
+            zpreg = fit_sm(z_pat_vec, z_gvec, True, sm.OLS)
+            zpreg_arrs[0][j] = zpreg.params[0]
+            zpreg_arrs[1][j] = zpreg.pvalues[0]  # ty:ignore[unresolved-attribute]
+            zpreg_arrs[2][j] = zpreg.rsquared  # ty:ignore[unresolved-attribute]
+
+    # sanity check
+    # assert all(not np.any(np.isnan(e)) for e in [corr_arr, wcorr_arr, *preg_arrs]), "uninitilized (nan) values found in outputs, should never happen"
+
+    adata.varm[out_key] = pd.DataFrame(
+        {"gene": adata.var_names, "corr": corr_arr, "wcorr": wcorr_arr}
+        | dict(zip((f"reg_{e}" for e in out_keys), preg_arrs))
+        | dict(zip((f"zreg_{e}" for e in out_keys), zpreg_arrs))
+    ).set_index("gene")
