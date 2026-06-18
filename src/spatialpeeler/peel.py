@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 
 import numpy as np
 import pandas as pd
@@ -16,23 +16,24 @@ INP_KEY = "sP_inp"
 
 
 def wcorr(x: np.ndarray, y: np.ndarray, w: np.ndarray | None = None) -> np.ndarray:
-    with catch_warnings(action="ignore", category=RuntimeWarning):
+    with catch_warnings():
+        simplefilter(action="ignore", category=RuntimeWarning, lineno=21)
         return np.cov(x, y, aweights=w)[0, 1] / np.sqrt(np.cov(x, aweights=w) * np.cov(y, aweights=w))
 
 
 def fit_sm(X: np.ndarray, y: np.ndarray, with_intercept: bool, model: type[Model]) -> Results:
     if with_intercept:
         X = np.vstack([X, np.ones((X.shape[0],))]).T
-    return model(y, X).fit(disp=False)  # ty:ignore[unknown-argument]
+    with catch_warnings():
+        simplefilter(action="ignore", category=RuntimeWarning)
+        return model(y, X).fit(disp=False)  # ty:ignore[unknown-argument]
 
 
-def run_bin(x: np.ndarray, mask: np.ndarray) -> np.ndarray:
-    cents, clusts = kmeans2(x[mask], 2, minit="++")
+def run_bin(x: np.ndarray) -> np.ndarray:
+    cents, clusts = kmeans2(x, 2, minit="++")
     if cents[0] > cents[1]:
         clusts = ~clusts
-    out = np.copy(mask)
-    out[mask] = clusts
-    return out.astype(bool)
+    return clusts.astype(bool)
 
 
 def run_fact_reg(
@@ -70,20 +71,25 @@ def run_fact_reg(
     if filt is None:
         mod = fit_sm(
             adata.obsm[X_key][:, k],
-            (adata.obs[y_key] != ctl_val).to_numpy(),  # ty:ignore[unresolved-attribute]
+            (adata.obs[y_key] != ctl_val).to_numpy(),
             True,
             sm.Logit,
         )
         y, pat_vec = mod.model.endog, mod.predict(mod.model.exog)
         adata.obsm[out_key] = pd.DataFrame(
-            {"cell": adata.obs_names, PAT_KEY: pat_vec, BIN_KEY: run_bin(pat_vec, y), INP_KEY: mod.model.exog[:, 0]}
+            {
+                "cell": adata.obs_names,
+                PAT_KEY: pat_vec,
+                BIN_KEY: run_bin(pat_vec),
+                INP_KEY: mod.model.exog[:, 0],
+            }
         ).set_index("cell")
     else:
         idx = adata.obs.index.get_indexer_for(filt(adata).obs.index)
         adata_s = adata[idx, :]
         mod = fit_sm(
             adata_s.obsm[X_key][:, k],
-            (adata_s.obs[y_key] != ctl_val).to_numpy(),  # ty:ignore[unresolved-attribute]
+            (adata_s.obs[y_key] != ctl_val).to_numpy(),
             True,
             sm.Logit,
         )
@@ -94,7 +100,7 @@ def run_fact_reg(
             {
                 "cell": adata.obs_names,
                 PAT_KEY: pd.arrays.SparseArray(pat_vec, sp_index, fill_value=np.nan),
-                BIN_KEY: pd.arrays.SparseArray(run_bin(pat_vec, y), sp_index, fill_value=np.nan),
+                BIN_KEY: pd.arrays.SparseArray(run_bin(pat_vec), sp_index, fill_value=np.nan),
                 INP_KEY: pd.arrays.SparseArray(mod.model.exog[:, 0], sp_index, fill_value=np.nan),
             }
         ).set_index("cell")
@@ -132,15 +138,16 @@ def run_gene_reg(
     X = adata.X if layer is None else adata.layers[layer]
 
     sp_out = adata.obsm[sp_step1_key]
-    w_vec = sp_out[INP_KEY].array
-    pat_vec = sp_out[PAT_KEY].array
+    w_vec = sp_out[INP_KEY].array  # ty:ignore[unresolved-attribute]
+    pat_vec = sp_out[PAT_KEY].array  # ty:ignore[unresolved-attribute]
 
     if isinstance(w_vec, pd.arrays.SparseArray):
+        assert isinstance(pat_vec, pd.arrays.SparseArray)
         assert w_vec.sp_index is pat_vec.sp_index
         X = X[w_vec.sp_index.indices, :]  # ty:ignore[not-subscriptable]
         w_vec, pat_vec = w_vec.sp_values, pat_vec.sp_values
     else:
-        w_vec, pat_vec = w_vec.to_numpy(), pat_vec.to_numpy()
+        w_vec, pat_vec = np.asarray(w_vec), np.asarray(pat_vec)
 
     z_pat_vec = zscore(pat_vec)
 
@@ -159,16 +166,16 @@ def run_gene_reg(
     )
 
     for j in range(X.shape[1]):  # ty: ignore[unresolved-attribute]
-        gvec = X[:, j]  # ty: ignore[not-subscriptable, invalid-argument-type]
+        gvec = X[:, j]  # ty: ignore[not-subscriptable]
         if not isinstance(gvec, np.ndarray):
-            gvec = gvec.toarray()  # ty: ignore[unresolved-attribute]
+            gvec = np.ravel(gvec.toarray())  # ty: ignore[unresolved-attribute]
 
         corr_arr[j] = wcorr(gvec, pat_vec)
         wcorr_arr[j] = wcorr(gvec, pat_vec, w_vec)
 
         preg = fit_sm(pat_vec, gvec, True, sm.OLS)
         preg_arrs[0][j] = preg.params[0]
-        preg_arrs[1][j] = preg.pvalues[0]  # ty:ignore[unresolved-attribute]
+        preg_arrs[1][j] = preg.pvalues[0] * adata.n_vars  # ty:ignore[unresolved-attribute]
         preg_arrs[2][j] = preg.rsquared  # ty:ignore[unresolved-attribute]
 
         z_gvec = zscore(gvec)
@@ -176,7 +183,7 @@ def run_gene_reg(
         if z_index.size > 0:
             zpreg = fit_sm(z_pat_vec, z_gvec, True, sm.OLS)
             zpreg_arrs[0][j] = zpreg.params[0]
-            zpreg_arrs[1][j] = zpreg.pvalues[0]  # ty:ignore[unresolved-attribute]
+            zpreg_arrs[1][j] = zpreg.pvalues[0] * adata.n_vars  # ty:ignore[unresolved-attribute]
             zpreg_arrs[2][j] = zpreg.rsquared  # ty:ignore[unresolved-attribute]
 
     # sanity check

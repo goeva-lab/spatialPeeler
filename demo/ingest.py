@@ -8,11 +8,11 @@ from scipy.io import mmread
 from sklearn.decomposition import NMF
 
 
-def run_proc_per_ds[T](adatas: Mapping[T, sc.AnnData]) -> None:
+def run_proc_per_ds(adatas: Mapping[str, sc.AnnData]) -> None:
     # scale by sample
     for adata in adatas.values():
         adata.raw = adata
-        adata.layers["counts"] = adata.X
+        adata.layers["counts"] = adata.X  # ty:ignore[invalid-assignment]
         sc.pp.scale(adata, zero_center=False)
 
 
@@ -31,7 +31,7 @@ def load_remyelin_ds(ds_path: Path, **kwargs) -> ad.AnnData:
     ).set_index("cell")
 
     adata = ad.AnnData(
-        mmread(next(ds_path.glob("*.mtx")), spmatrix=False).tocsc().T,
+        mmread(next(ds_path.glob("*.mtx")), spmatrix=True).tocsc().T,
         var=pd.read_csv(
             next(ds_path.glob("*_features.tsv")),
             delimiter="\t",
@@ -66,7 +66,17 @@ def remyelin_ds(pth: Path, filt_fn: Callable[[pd.DataFrame], pd.Series] | None =
     return {
         row["PuckID"]: load_remyelin_ds(
             pth / row["Directory name"],
-            **(row[["Sample details", "Animal", "Timepoint", "Condition", "GoodQuality"]]),
+            **(
+                row[
+                    [
+                        "Sample details",
+                        "Animal",
+                        "Timepoint",
+                        "Condition",
+                        "GoodQuality",
+                    ]
+                ]
+            ),
         )
         for _, row in meta.iterrows()
     }
@@ -81,8 +91,8 @@ def load_psc_ds(ds_path: Path, **kwargs) -> ad.AnnData:
     ).set_index("cell")
 
     adata = ad.AnnData(
-        mmread(ds_path / "matrix.mtx.gz", spmatrix=False).tocsc().T,
-        var=pd.read_csv(
+        mmread(ds_path / "matrix.mtx.gz", spmatrix=True).tocsc().T,
+        var=pd.read_csv(  # ty:ignore[no-matching-overload]
             ds_path / "features.tsv.gz",
             delimiter="\t",
             header=None,
@@ -91,7 +101,7 @@ def load_psc_ds(ds_path: Path, **kwargs) -> ad.AnnData:
         ).set_index("gene"),
         obs=obs.index.to_frame(),
         obsm={
-            "spatial": pd.read_csv(
+            "spatial": pd.read_csv(  # ty:ignore[no-matching-overload]
                 ds_path / "tissue_positions_list.csv.gz",
                 delimiter=",",
                 header=None,

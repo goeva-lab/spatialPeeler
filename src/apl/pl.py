@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import reduce
-from typing import Any, Iterator, Self
+from typing import Any, Iterator
 
 import anndata as ad
 import numpy as np
@@ -36,7 +36,7 @@ def to_1d_arr(x: Any) -> np.ndarray:
     return np.asarray(x).ravel()
 
 
-def col_from_df_or_arr(inp: pd.DataFrame | np.ndarray, j: str | int) -> Any:
+def col_from_df_or_arr(inp: Any, j: str | int) -> Any:
     if isinstance(inp, pd.DataFrame):
         return inp.iloc[:, j] if isinstance(j, int) else inp.loc[:, j]
 
@@ -171,12 +171,15 @@ class MangleKeyLabeller(p9.labeller):
         self.__mangle_dict = mangle_dict
         self.__inner = inner
 
-    def __call__(self, label_info: p9.facets.labelling.strip_label_details) -> p9.facets.labelling.strip_label_details:
+    # location of strip_label_details type is not stable, so we do not provide an annotation for back-compat/stability
+    def __call__(self, label_info):
         out = self.__inner(label_info)
         # we need to replace all references to the mangled keys we use internally if something like label_both is used as a labeller
         for var in out.variables.keys():
             out.variables[var] = reduce(
-                lambda a, c: a.replace(c, self.__mangle_dict[c]), self.__mangle_dict.keys(), initial=out.variables[var]
+                lambda a, c: a.replace(c, self.__mangle_dict[c]),
+                self.__mangle_dict.keys(),
+                out.variables[var],
             )
 
         return out
@@ -191,14 +194,17 @@ class MangleKeyLabeller(p9.labeller):
 
 class PlotAdata(p9.ggplot):
     __adata: ad.AnnData
+    __vwidx: None | tuple
     data: pd.DataFrame
 
     def __init__(self, adata: ad.AnnData, mapping: p9.aes | None = None):
         self.__adata = adata
         self.__vwidx = (adata._oidx, adata._vidx) if adata.is_view else None
-        super().__init__(pd.DataFrame(index=adata.obs.index), mapping)
+        super().__init__(pd.DataFrame(), mapping)
 
-    def __deepcopy__(self, memo) -> Self:
+    # this returns typing.Self, but for back-compat we remove the annotation
+    # TODO: re-add annotation when 3.11 becomes standard
+    def __deepcopy__(self, memo):
         out = super().__deepcopy__(memo)
         out.__class__ = self.__class__
         assert isinstance(out, type(self))
@@ -254,7 +260,7 @@ class PlotAdata(p9.ggplot):
             assert self.__adata._adata_ref is not None, (
                 "should never happen: provided anndata was a view during construction of object but is no longer one when drawing figure"
             )
-            self.__adata = self.__adata._adata_ref[*self.__vwidx]
+            self.__adata = self.__adata._adata_ref[self.__vwidx[0], self.__vwidx[1]]
 
         maps = [self, *self.layers]
         by_var = bool(

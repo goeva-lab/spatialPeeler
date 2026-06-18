@@ -36,7 +36,7 @@ else:
     run_proc_per_ds(adatas)
 
     rml = ad.concat(adatas, label="puck_id", index_unique="_")
-    rml.obs["puck_id_cond"] = rml.obs["puck_id"].str.cat(rml.obs["Condition"], sep="_")  # ty:ignore[unresolved-attribute]
+    rml.obs["puck_id_cond"] = rml.obs["puck_id"].str.cat(rml.obs["Condition"], sep="_")
 
     run_nmf(rml, 30, RAND_SEED)
 
@@ -85,7 +85,7 @@ print(rml)
     >> ggplot()
     + aes(x="reorder(k, -beta)", fill="-np.log(pval)", y="beta")
     + geom_col()
-    + labs(fill="-log(pval)")
+    + labs(fill="-log(pval)", x="NMF factor")
     + scale_fill_cmap("turbo")
 ).show()
 
@@ -94,21 +94,28 @@ print(rml)
 # so we can plot the spatial distribution of the factor and the pattern
 # %%
 rml_filt = rml[rml.obsm["X_nmf"][:, 6] > 0, :]
+k_oi = "sp_p_hat_k=06"
 plo = apl.PlotAdata(rml_filt)
 pl1a = plo + aes(colour=apl.obsm("X_nmf", 6)) + labs(colour="NMF[6]") + scale_colour_cmap("YlGnBu")
-pl1b = (
-    plo + aes(colour=apl.obsm("sp_p_hat_k=06", sP.PAT_KEY)) + labs(colour="p_hat") + scale_colour_cmap("YlGnBu", limits=(0, 1))
-)
+pl1b = plo + aes(colour=apl.obsm(k_oi, sP.PAT_KEY)) + labs(colour="p_hat") + scale_colour_cmap("YlGnBu", limits=(0, 1))
 pl1 = (
     (pl1a / pl1b)
     & aes(x=apl.obsm("spatial", "x"), y=apl.obsm("spatial", "y"))
     & geom_point_sp(size_in_px=2, alpha=0.5)
     & facet_wrap(apl.obs("puck_id_cond"))
-    & theme(axis_text=element_blank(), axis_ticks=element_blank(), strip_text=element_blank())
+    & theme(
+        axis_text=element_blank(),
+        axis_ticks=element_blank(),
+        strip_text=element_blank(),
+    )
 )
 pl2 = (
     plo
-    + aes(x=apl.obsm("X_nmf", 6), y=apl.obsm("sp_p_hat_k=06", sP.PAT_KEY), colour=apl.obs("Condition"))
+    + aes(
+        x=apl.obsm("X_nmf", 6),
+        y=apl.obsm(k_oi, sP.PAT_KEY),
+        colour=apl.obs("Condition"),
+    )
     + geom_point(alpha=0.5, shape=".")
     + labs(y="p_hat")
     + scale_colour_discrete()
@@ -122,30 +129,42 @@ pl2 = (
 # %%[markdown]
 # we can also use the run_deg function provided in the sP.diag module to assess DEGs between various labels / combinations of labels
 # %%
-case1_vs_case0 = run_deg(
-    rml_filt,
-    {apl.obsm("sp_p_hat_k=06", sP.BIN_KEY): True},
-    {apl.obs("Condition"): "LPC", apl.obsm("sp_p_hat_k=06", sP.BIN_KEY): False},
-)
-case1_vs_ctl = run_deg(
-    rml_filt,
-    {apl.obsm("sp_p_hat_k=06", sP.BIN_KEY): True},
-    {apl.obs("Condition"): "Saline"},
-)
-case_vs_ctl = run_deg(
-    rml_filt,
-    {apl.obs("Condition"): "LPC"},
-    {apl.obs("Condition"): "Saline"},
-)
+deg_results = {
+    "case1_vs_other": run_deg(rml_filt, {apl.obsm(k_oi, sP.BIN_KEY): True, apl.obs("Condition"): "LPC"}),
+    "case1_vs_case0": run_deg(rml_filt[rml_filt.obs["Condition"] == "LPC"], {apl.obsm(k_oi, sP.BIN_KEY): True}),
+    "case1_vs_control1": run_deg(
+        rml_filt[np.asarray(rml_filt.obsm[k_oi][sP.BIN_KEY])],
+        {apl.obs("Condition"): "LPC"},
+    ),
+    "case0_vs_control": run_deg(
+        rml_filt,
+        {apl.obsm(k_oi, sP.BIN_KEY): False, apl.obs("Condition"): "LPC"},
+        {apl.obs("Condition"): "Saline"},
+    ),
+    "case0_vs_control0": run_deg(
+        rml_filt[~np.asarray(rml_filt.obsm[k_oi][sP.BIN_KEY])],
+        {apl.obs("Condition"): "LPC"},
+    ),
+    "control1_vs_control0": run_deg(
+        rml_filt[rml_filt.obs["Condition"] == "Saline"],
+        {apl.obsm(k_oi, sP.BIN_KEY): True},
+    ),
+}
 
-print(
-    pd.concat(
-        {
-            "case1_vs_case0": (case1_vs_case0["adj_pval"] < 0.05).value_counts(),
-            "case1_vs_ctl": (case1_vs_ctl["adj_pval"] < 0.05).value_counts(),
-            "case_vs_ctl": (case_vs_ctl["adj_pval"] < 0.05).value_counts(),
-        }
-    )
+# %%
+(
+    pd.concat(deg_results, names=["cmp"])
+    .reset_index(drop=False)
+    .loc[lambda e: e["adj_pval"] < 0.05]
+    .groupby("cmp", observed=True)["gene"]
+    .count()
+    .reset_index(drop=False)
+    >> ggplot()
+    + aes(x="cmp", y="gene", fill=after_stat("y"))
+    + geom_col()
+    + theme(axis_text_x=element_text(angle=45, hjust=1))
+    + guides(fill="none")
+    + labs(x="", y="number of significant DEGs")
 )
 
 # %%[markdown]
@@ -155,11 +174,11 @@ print(
     plo
     + aes(
         x=apl.obs("Condition"),
-        y=apl.obsm("sp_p_hat_k=06", sP.PAT_KEY),
-        fill=apl.obsm("sp_p_hat_k=06", sP.BIN_KEY),
+        y=apl.obsm(k_oi, sP.PAT_KEY),
+        fill=apl.obsm(k_oi, sP.BIN_KEY),
     )
     + geom_violin()
-    + labs(fill="HiDDEN - affected")
+    + labs(fill="binarized\nlabel")
     + lims(y=(0, 1))
 ).show()
 
@@ -169,3 +188,15 @@ print(
 ks_oi = [6]
 for k in ks_oi:
     sP.run_gene_reg(rml, f"sp_p_hat_k={k:02}", f"sp_gene_id_k={k:02}", layer="counts")
+
+
+(
+    apl.PlotAdata(rml)
+    + aes(
+        x=apl.varm("X_nmf", 6),
+        y=apl.varm("sp_gene_id_k=06", "reg_beta"),
+        colour=stage(apl.varm("sp_gene_id_k=06", "reg_pval"), "-np.log(color)"),
+    )
+    + geom_point(size=1.5, shape="o", stroke=0)
+    + labs(colour="-log(pval)", y="model beta of NMF[6] w/ p_hat")
+)
