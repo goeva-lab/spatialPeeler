@@ -11,3 +11,18 @@ repo is split into [`apl`](./src/apl/) (generic [`plotnine`](https://plotnine.or
 ```bash
 uv pip install -e '.'
 ```
+
+## running the notebooks
+
+running the notebooks provided in the [`./demo`](./demo) folder requires installing dev dependencies and setting up a jupyter kernel w/ the current python executable:
+
+```bash
+uv pip install -e '.[dev]'
+python -m ipykernel install --name spatialPeeler --user
+```
+
+generating `ipynb` files for all the the jupytext notebooks can be done as follows:
+
+```bash
+jupytext --to 'notebook' --execute 'demo/'*'.py'
+```
