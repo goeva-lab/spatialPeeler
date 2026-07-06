@@ -125,7 +125,7 @@ def comp_sparsity(mtx, *args: np.ndarray | pd.Series, **kwargs) -> pd.DataFrame:
     df = df.melt(id_vars=gbys, var_name="column", value_name="sparsity")
     df["column"] = pd.Categorical(df["column"])
 
-    return df.groupby(["column", *gbys], observed=True).agg(np.mean).reset_index(drop=False)
+    return df.groupby(["column", *gbys], observed=True).agg("mean").reset_index(drop=False)
 
 
 def geom_point_sp(size_in_px: int = 1, dpi: float = 300.0, *args, **kwargs) -> Any:
