@@ -205,11 +205,14 @@ class PlotAdata(p9.ggplot):
     # this returns typing.Self, but for back-compat we remove the annotation
     # TODO: re-add annotation when 3.11 becomes standard
     def __deepcopy__(self, memo):
-        out = super().__deepcopy__(memo)
-        out.__class__ = self.__class__
-        assert isinstance(out, type(self))
+        # add the anndata to memo to avoid actually copying it in the super method
+        memo[id(self.__adata)] = self.__adata
+        out = self.__class__.__new__(self.__class__)
+        out.__dict__ = super().__deepcopy__(memo).__dict__
 
-        out.__adata = self.__adata  # we do NOT want to be deep-copying the entire anndata object
+        assert isinstance(out, type(self))
+        assert out.__adata is self.__adata
+
         return out
 
     def __fetch(self, spec: Any, by_var: bool) -> None | tuple[str, str]:
