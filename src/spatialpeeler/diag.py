@@ -28,7 +28,7 @@ def mk_mask(adata: ad.AnnData, items: Iterable[tuple[apl.FetchBase, Any]]) -> np
     return mask
 
 
-def run_deg(
+def run_deg_mwu(
     adata: ad.AnnData,
     g1: dict[apl.FetchBase, Any],
     g2: dict[apl.FetchBase, Any] | None = None,
@@ -64,14 +64,13 @@ def run_deg(
 
     pvals = np.full((adata.n_vars,), np.nan)
     if isinstance(mtx, sparray | spmatrix):
-        for i in np.arange(adata.n_vars)[mask]:
-            lhs_i, rhs_i = lhs[:, i].todense(), rhs[:, i].todense()  # ty:ignore[unresolved-attribute, not-subscriptable]
-            if len(lhs_i.shape) > 1:
-                lhs_i = np.ravel(lhs_i)
-            if len(rhs_i.shape) > 1:
-                rhs_i = np.ravel(rhs_i)
-
-            pvals[i] = mannwhitneyu(lhs_i, rhs_i).pvalue * adata.n_vars
+        idx_arr = np.arange(adata.n_vars)[mask]
+        batch_n = max(1, 125000000 // adata.n_obs)  # 125e6 ~= 1GB / 64bits, trying not to alloc more than a gig at a time
+        for start in range(0, idx_arr.size, batch_n):
+            slc = idx_arr[start : min(adata.n_vars, start + batch_n)]
+            lhs_i, rhs_i = lhs[:, slc].todense(), rhs[:, slc].todense()  # ty:ignore[unresolved-attribute, not-subscriptable]
+            pvals[slc] = mannwhitneyu(lhs_i, rhs_i).pvalue * adata.n_vars
+            del lhs_i, rhs_i
     else:
         pvals[mask] = mannwhitneyu(lhs[:, mask], rhs[:, mask]).pvalue * adata.n_vars  # ty:ignore[not-subscriptable]
 
