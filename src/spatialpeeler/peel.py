@@ -29,11 +29,18 @@ def fit_sm(X: np.ndarray, y: np.ndarray, with_intercept: bool, model: type[Model
         return model(y, X).fit(disp=False)  # ty:ignore[unknown-argument]
 
 
-def run_bin(x: np.ndarray) -> np.ndarray:
-    cents, clusts = kmeans2(x, 2, minit="++")
+def run_bin(x: np.ndarray, init_mask: np.ndarray) -> np.ndarray:
+    cents, clusts = kmeans2(x[init_mask], 2, minit="++")
+    clusts = clusts.astype(bool)
     if cents[0] > cents[1]:
         clusts = ~clusts
-    return clusts.astype(bool)
+
+    out = np.copy(init_mask).astype(bool)
+    out[out] = clusts
+    # relabel controls according to whichever centroid they are closer
+    # to according to the clustering of the case-only data
+    out[~out] = np.where(x[~out] >= np.mean(cents), True, False)
+    return out
 
 
 def run_fact_reg(
@@ -80,7 +87,7 @@ def run_fact_reg(
             {
                 "cell": adata.obs_names,
                 PAT_KEY: pat_vec,
-                BIN_KEY: run_bin(pat_vec),
+                BIN_KEY: run_bin(pat_vec, y),
                 INP_KEY: mod.model.exog[:, 0],
             }
         ).set_index("cell")
@@ -100,7 +107,7 @@ def run_fact_reg(
             {
                 "cell": adata.obs_names,
                 PAT_KEY: pd.arrays.SparseArray(pat_vec, sp_index, fill_value=np.nan),
-                BIN_KEY: pd.arrays.SparseArray(run_bin(pat_vec), sp_index, fill_value=np.nan),
+                BIN_KEY: pd.arrays.SparseArray(run_bin(pat_vec, y), sp_index, fill_value=np.nan),
                 INP_KEY: pd.arrays.SparseArray(mod.model.exog[:, 0], sp_index, fill_value=np.nan),
             }
         ).set_index("cell")
@@ -176,7 +183,9 @@ def run_gene_reg(
         preg = fit_sm(pat_vec, gvec, True, sm.OLS)
         preg_arrs[0][j] = preg.params[0]
         preg_arrs[1][j] = preg.pvalues[0] * adata.n_vars  # ty:ignore[unresolved-attribute]
-        preg_arrs[2][j] = preg.rsquared  # ty:ignore[unresolved-attribute]
+        with catch_warnings():
+            simplefilter(action="ignore", category=RuntimeWarning)
+            preg_arrs[2][j] = preg.rsquared  # ty:ignore[unresolved-attribute]
 
         z_gvec = zscore(gvec)
         z_index = np.nonzero(np.isfinite(z_gvec))[0]
@@ -184,10 +193,9 @@ def run_gene_reg(
             zpreg = fit_sm(z_pat_vec, z_gvec, True, sm.OLS)
             zpreg_arrs[0][j] = zpreg.params[0]
             zpreg_arrs[1][j] = zpreg.pvalues[0] * adata.n_vars  # ty:ignore[unresolved-attribute]
-            zpreg_arrs[2][j] = zpreg.rsquared  # ty:ignore[unresolved-attribute]
-
-    # sanity check
-    # assert all(not np.any(np.isnan(e)) for e in [corr_arr, wcorr_arr, *preg_arrs]), "uninitilized (nan) values found in outputs, should never happen"
+            with catch_warnings():
+                simplefilter(action="ignore", category=RuntimeWarning)
+                zpreg_arrs[2][j] = zpreg.rsquared  # ty:ignore[unresolved-attribute]
 
     adata.varm[out_key] = pd.DataFrame(
         {"gene": adata.var_names, "corr": corr_arr, "wcorr": wcorr_arr}
