@@ -1,5 +1,12 @@
-# ruff: noqa: F405
+# ---
+# jupyter:
+#   kernelspec:
+#     display_name: spatialPeeler
+#     language: python
+#     name: spatialpeeler
+# ---
 # %%
+# ruff: noqa: F405
 from pathlib import Path
 from pickle import dump, load
 
@@ -7,13 +14,14 @@ import anndata as ad
 import numpy as np
 import pandas as pd
 from ingest import remyelin_ds, run_nmf, run_proc_per_ds
+from matplotlib import pyplot as plt
 from plotnine import *  # noqa: F403
 
 import apl
 import spatialpeeler as sP
-from spatialpeeler.diag import comp_sparsity, geom_point_sp, run_deg, sweep_uns
+from spatialpeeler.diag import comp_sparsity, geom_point_sp, run_deg_mwu, sweep_uns
 
-# %%
+plt.rcParams["figure.dpi"] = 300
 RAND_SEED = 28
 
 # %%
@@ -69,7 +77,7 @@ for k in range(rml.obsm["X_nmf"].shape[1]):
         "Condition",
         "Saline",
         k,
-        f"sp_p_hat_k={k:02}",
+        f"sP_p_hat_k={k:02}",
         X_key="X_nmf",
         filt=lambda adata: adata[adata.obsm["X_nmf"][:, k] > 0, :],
     )
@@ -77,11 +85,11 @@ for k in range(rml.obsm["X_nmf"].shape[1]):
 print(rml)
 
 # %% [markdown]
-# we now assess our resulting regression outputs distributions
+# we now assess our resulting regression outputs distributions \
 # we can extract and collate the model betas and other statistics using the sweep_uns function
 # %%
 (
-    sweep_uns(rml, "sp_p_hat_k={k}")
+    sweep_uns(rml, "sP_p_hat_k={k}")
     >> ggplot()
     + aes(x="reorder(k, -beta)", fill="-np.log(pval)", y="beta")
     + geom_col()
@@ -93,11 +101,12 @@ print(rml)
 # we can see that factor 6 has particularly high beta value and significance,
 # so we can plot the spatial distribution of the factor and the pattern
 # %%
-rml_filt = rml[rml.obsm["X_nmf"][:, 6] > 0, :]
-k_oi = "sp_p_hat_k=06"
+k_oi = 6
+rml_filt = rml[rml.obsm["X_nmf"][:, k_oi] > 0, :]
+obsm_sl_oi = f"sP_p_hat_k={k_oi:02}"
 plo = apl.PlotAdata(rml_filt)
-pl1a = plo + aes(colour=apl.obsm("X_nmf", 6)) + labs(colour="NMF[6]") + scale_colour_cmap("YlGnBu")
-pl1b = plo + aes(colour=apl.obsm(k_oi, sP.PAT_KEY)) + labs(colour="p_hat") + scale_colour_cmap("YlGnBu", limits=(0, 1))
+pl1a = plo + aes(colour=apl.obsm("X_nmf", k_oi)) + labs(colour=f"NMF[{k_oi}]") + scale_colour_cmap("YlGnBu")
+pl1b = plo + aes(colour=apl.obsm(obsm_sl_oi, sP.PAT_KEY)) + labs(colour="p_hat") + scale_colour_cmap("YlGnBu", limits=(0, 1))
 pl1 = (
     (pl1a / pl1b)
     & aes(x=apl.obsm("spatial", "x"), y=apl.obsm("spatial", "y"))
@@ -112,8 +121,8 @@ pl1 = (
 pl2 = (
     plo
     + aes(
-        x=apl.obsm("X_nmf", 6),
-        y=apl.obsm(k_oi, sP.PAT_KEY),
+        x=apl.obsm("X_nmf", k_oi),
+        y=apl.obsm(obsm_sl_oi, sP.PAT_KEY),
         colour=apl.obs("Condition"),
     )
     + geom_point(alpha=0.5, shape=".")
@@ -122,40 +131,53 @@ pl2 = (
 )
 (pl1 | pl2).show()
 
-# %%[markdown]
+# %% [markdown]
 # we can observe that the non-linearity of the logistic regression probability outputs allows
 # for strong extraction of the disease effect, which is not as visible with just the NMF factor on its own
 
-# %%[markdown]
-# we can also use the run_deg function provided in the sP.diag module to assess DEGs between various labels / combinations of labels
+# %% [markdown]
+# we can also use the `run_deg_mwu` function provided in the `sP.diag` module to assess DEGs between various labels / combinations of labels
 # %%
-deg_results = {
-    "case1_vs_other": run_deg(rml_filt, {apl.obsm(k_oi, sP.BIN_KEY): True, apl.obs("Condition"): "LPC"}),
-    "case1_vs_case0": run_deg(rml_filt[rml_filt.obs["Condition"] == "LPC"], {apl.obsm(k_oi, sP.BIN_KEY): True}),
-    "case1_vs_control1": run_deg(
-        rml_filt[np.asarray(rml_filt.obsm[k_oi][sP.BIN_KEY])],
-        {apl.obs("Condition"): "LPC"},
-    ),
-    "case0_vs_control": run_deg(
-        rml_filt,
-        {apl.obsm(k_oi, sP.BIN_KEY): False, apl.obs("Condition"): "LPC"},
+deg_conf = {
+    "case_vs_control": ({apl.obs("Condition"): "LPC"},),
+    #
+    "case1_vs_rest": ({apl.obs("Condition"): "LPC", apl.obsm(obsm_sl_oi, sP.BIN_KEY): True},),
+    "case1_vs_control": (
+        {apl.obs("Condition"): "LPC", apl.obsm(obsm_sl_oi, sP.BIN_KEY): True},
         {apl.obs("Condition"): "Saline"},
     ),
-    "case0_vs_control0": run_deg(
-        rml_filt[~np.asarray(rml_filt.obsm[k_oi][sP.BIN_KEY])],
-        {apl.obs("Condition"): "LPC"},
+    "case1_vs_case0": (
+        {apl.obs("Condition"): "LPC", apl.obsm(obsm_sl_oi, sP.BIN_KEY): True},
+        {apl.obs("Condition"): "LPC", apl.obsm(obsm_sl_oi, sP.BIN_KEY): False},
     ),
-    "control1_vs_control0": run_deg(
-        rml_filt[rml_filt.obs["Condition"] == "Saline"],
-        {apl.obsm(k_oi, sP.BIN_KEY): True},
+    "case1_vs_control0": (
+        {apl.obs("Condition"): "LPC", apl.obsm(obsm_sl_oi, sP.BIN_KEY): True},
+        {apl.obs("Condition"): "Saline", apl.obsm(obsm_sl_oi, sP.BIN_KEY): False},
+    ),
+    #
+    "case0_vs_control": (
+        {apl.obs("Condition"): "LPC", apl.obsm(obsm_sl_oi, sP.BIN_KEY): False},
+        {apl.obs("Condition"): "Saline"},
+    ),
+    "case0_vs_control0": (
+        {apl.obs("Condition"): "LPC", apl.obsm(obsm_sl_oi, sP.BIN_KEY): False},
+        {apl.obs("Condition"): "Saline", apl.obsm(obsm_sl_oi, sP.BIN_KEY): False},
+    ),
+    #
+    "control1_vs_control0": (
+        {apl.obs("Condition"): "Saline", apl.obsm(obsm_sl_oi, sP.BIN_KEY): True},
+        {apl.obs("Condition"): "Saline", apl.obsm(obsm_sl_oi, sP.BIN_KEY): False},
     ),
 }
 
+deg_results = pd.concat({k: run_deg_mwu(rml_filt, *v) for k, v in deg_conf.items()}, names=["cmp"]).reset_index(drop=False)
+deg_results["cmp"] = pd.Categorical(deg_results["cmp"], categories=deg_conf.keys(), ordered=True)
+
+# %% [markdown]
+# we can then plot the number of DEGs generated
 # %%
 (
-    pd.concat(deg_results, names=["cmp"])
-    .reset_index(drop=False)
-    .loc[lambda e: e["adj_pval"] < 0.05]
+    deg_results.loc[lambda e: (e["adj_pval"] < 0.05) & (e["lfc"].abs() > 1)]
     .groupby("cmp", observed=True)["gene"]
     .count()
     .reset_index(drop=False)
@@ -164,39 +186,36 @@ deg_results = {
     + geom_col()
     + theme(axis_text_x=element_text(angle=45, hjust=1))
     + guides(fill="none")
-    + labs(x="", y="number of significant DEGs")
-)
+    + labs(x="", y="# of DEGs (adj_pval < 0.05 & |lfc| > 1)")
+).show()
 
-# %%[markdown]
+# %% [markdown]
 # we can also assess the distributions of p_hat values across the binarized labels:
 # %%
 (
     plo
     + aes(
         x=apl.obs("Condition"),
-        y=apl.obsm(k_oi, sP.PAT_KEY),
-        fill=apl.obsm(k_oi, sP.BIN_KEY),
+        y=apl.obsm(obsm_sl_oi, sP.PAT_KEY),
+        fill=apl.obsm(obsm_sl_oi, sP.BIN_KEY),
     )
     + geom_violin()
     + labs(fill="binarized\nlabel")
     + lims(y=(0, 1))
 ).show()
 
-# %%[markdown]
+# %% [markdown]
 # given factor 6 displays interesting properties, we proceed with gene-wise analysis for factor 6
 # %%
-ks_oi = [6]
-for k in ks_oi:
-    sP.run_gene_reg(rml, f"sp_p_hat_k={k:02}", f"sp_gene_id_k={k:02}", layer="counts")
-
+sP.run_gene_reg(rml, f"sP_p_hat_k={k_oi:02}", f"sp_gene_id_k={k_oi:02}", layer="counts")
 
 (
     apl.PlotAdata(rml)
     + aes(
-        x=apl.varm("X_nmf", 6),
+        x=apl.varm("X_nmf", k_oi),
         y=apl.varm("sp_gene_id_k=06", "reg_beta"),
         colour=stage(apl.varm("sp_gene_id_k=06", "reg_pval"), "-np.log(color)"),
     )
     + geom_point(size=1.5, shape="o", stroke=0)
-    + labs(colour="-log(pval)", y="model beta of NMF[6] w/ p_hat")
-)
+    + labs(colour="-log(pval)", y=f"β for NMF[{k_oi}] ~ p_hat + 1")
+).show()
