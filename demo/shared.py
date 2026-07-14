@@ -2,8 +2,10 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 
 import anndata as ad
+import matplotlib as mpl
 import pandas as pd
 import scanpy as sc
+from plotnine import theme_matplotlib, theme_set, theme_update
 from scipy.io import mmread
 from sklearn.decomposition import NMF
 
@@ -58,7 +60,6 @@ def load_remyelin_ds(ds_path: Path, **kwargs) -> ad.AnnData:
 
 
 def remyelin_ds(pth: Path, filt_fn: Callable[[pd.DataFrame], pd.Series] | None = None) -> dict[str, ad.AnnData]:
-
     meta = pd.read_csv(pth / "batch_key.csv")
     if filt_fn is not None:
         meta = meta.loc[filt_fn]
@@ -83,12 +84,16 @@ def remyelin_ds(pth: Path, filt_fn: Callable[[pd.DataFrame], pd.Series] | None =
 
 
 def load_psc_ds(ds_path: Path, **kwargs) -> ad.AnnData:
-    obs = pd.read_csv(
-        ds_path / "barcodes.tsv.gz",
-        delimiter="\t",
-        header=None,
-        names=["cell"],
-    ).set_index("cell")
+    c_idx = (
+        pd.read_csv(
+            ds_path / "barcodes.tsv.gz",
+            delimiter="\t",
+            header=None,
+            names=["cell"],
+        )
+        .set_index("cell")
+        .index
+    )
 
     adata = ad.AnnData(
         mmread(ds_path / "matrix.mtx.gz", spmatrix=True).tocsc().T,
@@ -99,7 +104,13 @@ def load_psc_ds(ds_path: Path, **kwargs) -> ad.AnnData:
             names=["gene", "SYMBOL"],
             usecols=[0, 1],
         ).set_index("gene"),
-        obs=obs.index.to_frame(),
+        obs=pd.read_csv(
+            ds_path / "meta.tsv",
+            delimiter="\t",
+            index_col=0,
+        )[["in_tissue", "percent.mt", "cell_type"]]
+        .loc[c_idx]
+        .assign(in_tissue=lambda e: e["in_tissue"].astype(bool)),
         obsm={
             "spatial": pd.read_csv(  # ty:ignore[no-matching-overload]
                 ds_path / "tissue_positions_list.csv.gz",
@@ -109,7 +120,7 @@ def load_psc_ds(ds_path: Path, **kwargs) -> ad.AnnData:
                 names=["cell", "x", "y"],
             )
             .set_index("cell")
-            .loc[obs.index]
+            .loc[c_idx]
         },
     )
 
@@ -132,3 +143,9 @@ def psc_ds(pth: Path, filt_fn: Callable[[pd.DataFrame], pd.Series] | None = None
         )
         for _, row in meta.iterrows()
     }
+
+
+def viz_defs() -> None:
+    mpl.rcParams["figure.dpi"] = 300
+    theme_set(theme_matplotlib)
+    theme_update()

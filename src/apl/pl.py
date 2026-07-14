@@ -232,7 +232,9 @@ class PlotAdata(p9.ggplot):
             "all data in the plot must be keyed to the same axis (e.g. cannot have one aesthetic fetched along `obs` index and another fetched along `var` index)"
         )
 
-        sk = f"__{hash(spec):X}"
+        hs = hash(spec)
+        sk = f"__{'MP'[hs > 0]}{abs(hs):X}"
+
         match spec:
             case FetchX(k, _) | FetchT(k, _) | FetchObs(k) | FetchVar(k):
                 nm = k

@@ -121,7 +121,7 @@ def comp_sparsity(mtx, *args: np.ndarray | pd.Series, **kwargs) -> pd.DataFrame:
     for k in gbys:
         df[k] = pd.Categorical(df[k])
 
-    df = df.melt(id_vars=gbys, var_name="column", value_name="sparsity")
+    df = df.melt(id_vars=gbys, var_name="column", value_name="density")
     df["column"] = pd.Categorical(df["column"])
 
     return df.groupby(["column", *gbys], observed=True).agg("mean").reset_index(drop=False)
