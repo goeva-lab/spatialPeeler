@@ -7,22 +7,23 @@
 # ---
 # %%
 # ruff: noqa: F405
+from functools import partial
 from pathlib import Path
 from pickle import dump, load
-from typing import Iterable
 
 import anndata as ad
 import numpy as np
 import scanpy as sc
 from plotnine import *  # noqa: F403
-from shared import psc_ds, run_nmf, run_proc_per_ds, viz_defs
+from shared import pl_k_sP, psc_ds, run_nmf, run_proc_per_ds, viz_defs
 
-import apl
 import spatialpeeler as sP
 from spatialpeeler.diag import comp_sparsity, sweep_uns
 
 viz_defs()
 RAND_SEED = 28
+# define helper function for plotting
+pl_help = partial(pl_k_sP, cond_lab="group", sample_lab="sample_id", ctl_val="CTL")
 
 # %%
 # load dataset + run NMF
@@ -88,70 +89,12 @@ print(psc)
 ).show()
 
 
-# %%
-def pl_k_sp(adata: ad.AnnData, k_oi: int) -> Iterable[ggplot]:
-    obsm_sl_oi = f"sP_p_hat_k={k_oi:02}"
-
-    plo = apl.PlotAdata(adata)
-
-    return [
-        (
-            plo
-            + aes(color=apl.obsm(obsm_sl_oi, sP.PAT_KEY))
-            + scale_color_cmap("cividis")
-            + coord_fixed()
-            + aes(x=apl.obsm("spatial", "x"), y=apl.obsm("spatial", "y"))
-            + geom_point(shape="h", size=0.1)
-            + facet_wrap([apl.obs("group"), apl.obs("sample_id")], nrow=2, shrink=False, scales="free")
-            + labs(color="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi}")
-            + theme(axis_text=element_blank(), axis_ticks=element_blank())
-        ),
-        (
-            plo
-            + aes(
-                x=apl.obsm("X_nmf", k_oi),
-                y=apl.obsm(obsm_sl_oi, sP.PAT_KEY),
-                color=apl.obs("group"),
-            )
-            + geom_point(alpha=1)
-            + facet_wrap(apl.obs("group"))
-            + scale_x_continuous(expand=(0.1, 0))
-            + labs(y="p\u0302", title=f"p\u0302 / NMF for k={k_oi}")
-        ),
-        (
-            plo
-            + aes(
-                x=apl.obs("sample_id"),
-                y=apl.obsm(obsm_sl_oi, sP.PAT_KEY),
-                fill=stage(apl.obsm(obsm_sl_oi, sP.BIN_KEY), "np.where(fill, '1', '0')"),
-            )
-            + geom_violin(scale="count")
-            + geom_boxplot(width=0.1, outlier_shape="", position=position_dodge(0.9), show_legend=False)
-            + labs(y="p\u0302", title=f"p\u0302 distributions for k={k_oi}", fill="")
-            + geom_hline(
-                yintercept=adata.obsm[obsm_sl_oi]
-                .groupby(sP.BIN_KEY)[sP.PAT_KEY]  # ty:ignore[unresolved-attribute]
-                .agg(["min", "max"])
-                .melt()["value"]
-                .iloc[[1, 2]]
-                .mean(),
-                linetype="dashed",
-                alpha=0.8,
-                color="red",
-            )
-            + coord_flip()
-            + scale_x_discrete(limits=reversed)  # ty:ignore[invalid-argument-type]
-            + guides(color="none")
-        ),
-    ]
-
-
 # %% [markdown]
 # we can see that factor 4 has a strong case-specific profile \
 # we plot its (and associated p_hat) distributions below:
 # %%
 for k in [4]:
-    for p in pl_k_sp(psc, k):
+    for p in pl_help(psc, k).values():
         p.show()
 
 
@@ -160,5 +103,5 @@ for k in [4]:
 # we plot its (and associated p_hat) distributions below:
 # %%
 for k in [6]:
-    for p in pl_k_sp(psc, k):
+    for p in pl_help(psc, k).values():
         p.show()
