@@ -24,5 +24,6 @@ python -m ipykernel install --name spatialPeeler --user
 generating `ipynb` files for all the the jupytext notebooks can be done as follows (remove the `--execute` flag if you wish to run the cells manually):
 
 ```bash
-jupytext --to 'notebook' --execute 'demo/demo-'*'.py'
+cd ./demo
+jupytext --to 'ipynb' --pipe-fmt 'ipynb' --pipe 'jupyter nbconvert --to ipynb --execute --ClearMetadataPreprocessor.enabled=True --stdin --stdout' 'demo-'*'.py'
 ```
