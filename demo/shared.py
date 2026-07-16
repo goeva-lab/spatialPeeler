@@ -194,20 +194,40 @@ def pl_k_sP(
         + p9.geom_hline(yintercept=p_hat_thresh, linetype="dashed", alpha=0.8, color="red")
         + p9.guides(color="none")
     )
+    non_ctl_val = "/".join(adata.obs[cond_lab].loc[lambda e: e != ctl_val].unique().tolist())
 
     return {
         "spatial p-hat": sum(sp_pl, start=plo)
         + p9.aes(color=apl.obsm(obsm_sl_oi, sP.PAT_KEY))
         + p9.scale_color_cmap("cividis")
-        + p9.labs(color="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi}"),
+        + p9.labs(color="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi}")
+        + p9.facet_wrap([apl.obs(cond_lab), apl.obs(sample_lab)], nrow=2, shrink=False, scales="free"),
         "spatial bin": sum(sp_pl, start=plo)
-        + p9.aes(color=apl.obs(cond_lab).fetch(adata) + np.where(apl.obsm(obsm_sl_oi, sP.BIN_KEY).fetch(adata), "1", "0"))
-        + p9.labs(color="refined\nlabel", title=f"refined label spatial distributions for k={k_oi}"),
-        "spatial p-hat (case-1 only)": sum(sp_pl, start=apl.PlotAdata(adata[adata.obs[cond_lab] != ctl_val, :]))
-        + p9.aes(color=apl.obsm(obsm_sl_oi, sP.PAT_KEY), alpha=apl.obsm(obsm_sl_oi, sP.BIN_KEY))
+        + p9.aes(color=apl.obs(cond_lab).fetch(adata) + np.where(apl.obsm(obsm_sl_oi, sP.BIN_KEY).fetch(adata), "-1", "-0"))
+        + p9.labs(color="refined\nlabel", title=f"refined label spatial distributions for k={k_oi}")
+        + p9.facet_wrap([apl.obs(cond_lab), apl.obs(sample_lab)], nrow=2, shrink=False, scales="free"),
+        "spatial p-hat (ctl/split)": sum(sp_pl, start=sum(sp_pl, start=apl.PlotAdata(adata[adata.obs[cond_lab] == ctl_val])))
+        + p9.aes(color=apl.obsm(obsm_sl_oi, sP.PAT_KEY))
         + p9.scale_color_cmap("cividis")
-        + p9.scale_alpha_manual({False: 0, True: 1}, guide=None)
-        + p9.labs(color="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi} for case-1 cells"),
+        + p9.labs(color="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi} for control cells (split by refinement)")
+        + p9.facet_grid(
+            cols=apl.obs(sample_lab),
+            rows=apl.obsm(obsm_sl_oi, sP.BIN_KEY),
+            shrink=False,
+            scales="free",
+            labeller=lambda e: {"False": f"{ctl_val}-0", "True": f"{ctl_val}-1"}.get(e, e),  # ty:ignore[invalid-argument-type]
+        ),
+        "spatial p-hat (case/split)": sum(sp_pl, start=sum(sp_pl, start=apl.PlotAdata(adata[adata.obs[cond_lab] != ctl_val])))
+        + p9.aes(color=apl.obsm(obsm_sl_oi, sP.PAT_KEY))
+        + p9.scale_color_cmap("cividis")
+        + p9.labs(color="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi} for case cells (split by refinement)")
+        + p9.facet_grid(
+            cols=apl.obs(sample_lab),
+            rows=apl.obsm(obsm_sl_oi, sP.BIN_KEY),
+            shrink=False,
+            scales="free",
+            labeller=lambda e: {"False": f"{non_ctl_val}-0", "True": f"{non_ctl_val}-1"}.get(e, e),  # ty:ignore[invalid-argument-type]
+        ),
         "emb/p-hat": plo
         + p9.aes(x=apl.obsm(obsm_sl_oi, sP.peel.INP_KEY), y=apl.obsm(obsm_sl_oi, sP.PAT_KEY), color=apl.obs("group"))
         + p9.geom_point(alpha=1)

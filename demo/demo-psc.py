@@ -13,6 +13,7 @@ from pickle import dump, load
 
 import anndata as ad
 import numpy as np
+import pandas as pd
 import scanpy as sc
 from plotnine import *  # noqa: F403
 from shared import pl_k_sP, psc_ds, run_nmf, run_proc_per_ds, viz_defs
@@ -105,3 +106,30 @@ for k in [4]:
 for k in [6]:
     for p in pl_help(psc, k).values():
         p.show()
+
+# %% [markdown]
+# we can see that both of the above factor p-hat values show compelling spatial properties
+# to explore this further, we can plot values for Geary's C and Morans' I per sample per k:
+# %%
+sp_stat_df = pd.concat(
+    [
+        pd.DataFrame({"k": k, "stat": stat, "val": stat_fn(sub, k_pat), "sample": sample}, index=np.asarray([0]))
+        for sample, sub in map(
+            lambda e: (e[0], sc.pp.neighbors(psc[e[1], :], use_rep="spatial", copy=True)),
+            psc.obs.groupby("sample_id", observed=True).indices.items(),
+        )
+        for stat, stat_fn in (("moran's i", sc.metrics.morans_i), ("geary's c", sc.metrics.gearys_c))
+        for k, k_pat in map(lambda k: (k, sub.obsm[f"sP_p_hat_k={k:02}"][sP.PAT_KEY]), range(sub.obsm["X_nmf"].shape[1]))
+    ],
+    ignore_index=True,
+)
+# %%
+(
+    ggplot(sp_stat_df)
+    + aes(x="sample", y="factor(k)", fill="val")
+    + geom_tile()
+    + facet_wrap("stat", nrow=1)
+    + scale_y_discrete(limits=lambda e: list(reversed(e)))
+    + labs(x="", y="k", fill="")
+    + theme(axis_text_x=element_text(rotation=90))
+).show()
