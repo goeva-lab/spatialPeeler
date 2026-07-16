@@ -11,7 +11,7 @@ dependencies = [
     "statsmodels",
 ]
 [project.optional-dependencies]
-dev = ["jupytext", "ipykernel", "nbconvert"]
+dev = ["jupytext", "ipykernel", "nbconvert", "ipywidgets"]
 
 [build-system]
 requires = ["uv_build<0.12"]
