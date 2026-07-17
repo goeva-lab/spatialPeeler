@@ -159,13 +159,13 @@ def viz_defs() -> None:
 def pl_k_sP(
     adata: ad.AnnData,
     k_oi: int,
-    cond_lab: str,
-    sample_lab: str,
+    cond_col: str,
+    sample_col: str,
     ctl_val: str,
-    fmt_str: str = "sP_p_hat_k={:02}",
+    fmt_str: str = "sP_p_hat_k={k}",
     spatial_obsm: str = "spatial",
 ) -> Mapping[str, p9.ggplot]:
-    obsm_sl_oi = fmt_str.format(k_oi)
+    obsm_sl_oi = fmt_str.format(k=k_oi)
     plo = apl.PlotAdata(adata)
 
     p_hat_thresh = (
@@ -182,7 +182,7 @@ def pl_k_sP(
         p9.aes(x=apl.obsm(spatial_obsm, "x"), y=apl.obsm(spatial_obsm, "y")),
         p9.geom_point(shape="h", size=0.1),
         p9.coord_fixed(),
-        p9.facet_wrap([apl.obs(cond_lab), apl.obs(sample_lab)], nrow=2, shrink=False, scales="free"),
+        p9.facet_wrap([apl.obs(cond_col), apl.obs(sample_col)], nrow=2, shrink=False, scales="free"),
         p9.theme(axis_text=p9.element_blank(), axis_ticks=p9.element_blank(), aspect_ratio=1),
     ]
     vln_pl = (
@@ -194,35 +194,35 @@ def pl_k_sP(
         + p9.geom_hline(yintercept=p_hat_thresh, linetype="dashed", alpha=0.8, color="red")
         + p9.guides(color="none")
     )
-    non_ctl_val = "/".join(adata.obs[cond_lab].loc[lambda e: e != ctl_val].unique().tolist())
+    non_ctl_val = "/".join(adata.obs[cond_col].loc[lambda e: e != ctl_val].unique().tolist())
 
     return {
         "spatial p-hat": sum(sp_pl, start=plo)
         + p9.aes(color=apl.obsm(obsm_sl_oi, sP.PAT_KEY))
         + p9.scale_color_cmap("cividis")
         + p9.labs(color="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi}")
-        + p9.facet_wrap([apl.obs(cond_lab), apl.obs(sample_lab)], nrow=2, shrink=False, scales="free"),
+        + p9.facet_wrap([apl.obs(cond_col), apl.obs(sample_col)], nrow=2, shrink=False, scales="free"),
         "spatial bin": sum(sp_pl, start=plo)
-        + p9.aes(color=apl.obs(cond_lab).fetch(adata) + np.where(apl.obsm(obsm_sl_oi, sP.BIN_KEY).fetch(adata), "-1", "-0"))
+        + p9.aes(color=apl.obs(cond_col).fetch(adata) + np.where(apl.obsm(obsm_sl_oi, sP.BIN_KEY).fetch(adata), "-1", "-0"))
         + p9.labs(color="refined\nlabel", title=f"refined label spatial distributions for k={k_oi}")
-        + p9.facet_wrap([apl.obs(cond_lab), apl.obs(sample_lab)], nrow=2, shrink=False, scales="free"),
-        "spatial p-hat (ctl/split)": sum(sp_pl, start=sum(sp_pl, start=apl.PlotAdata(adata[adata.obs[cond_lab] == ctl_val])))
+        + p9.facet_wrap([apl.obs(cond_col), apl.obs(sample_col)], nrow=2, shrink=False, scales="free"),
+        "spatial p-hat (ctl/split)": sum(sp_pl, start=sum(sp_pl, start=apl.PlotAdata(adata[adata.obs[cond_col] == ctl_val])))
         + p9.aes(color=apl.obsm(obsm_sl_oi, sP.PAT_KEY))
         + p9.scale_color_cmap("cividis")
         + p9.labs(color="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi} for control cells (split by refinement)")
         + p9.facet_grid(
-            cols=apl.obs(sample_lab),
+            cols=apl.obs(sample_col),
             rows=apl.obsm(obsm_sl_oi, sP.BIN_KEY),
             shrink=False,
             scales="free",
             labeller=lambda e: {"False": f"{ctl_val}-0", "True": f"{ctl_val}-1"}.get(e, e),  # ty:ignore[invalid-argument-type]
         ),
-        "spatial p-hat (case/split)": sum(sp_pl, start=sum(sp_pl, start=apl.PlotAdata(adata[adata.obs[cond_lab] != ctl_val])))
+        "spatial p-hat (case/split)": sum(sp_pl, start=sum(sp_pl, start=apl.PlotAdata(adata[adata.obs[cond_col] != ctl_val])))
         + p9.aes(color=apl.obsm(obsm_sl_oi, sP.PAT_KEY))
         + p9.scale_color_cmap("cividis")
         + p9.labs(color="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi} for case cells (split by refinement)")
         + p9.facet_grid(
-            cols=apl.obs(sample_lab),
+            cols=apl.obs(sample_col),
             rows=apl.obsm(obsm_sl_oi, sP.BIN_KEY),
             shrink=False,
             scales="free",
@@ -235,18 +235,64 @@ def pl_k_sP(
         + p9.scale_x_continuous(expand=(0.1, 0))
         + p9.labs(x=f"embedding [k={k_oi}]", y="p\u0302", title=f"p\u0302 / embedding for k={k_oi}"),
         "sample p-hat": vln_pl
-        + p9.aes(x=apl.obs(sample_lab))
+        + p9.aes(x=apl.obs(sample_col))
         + p9.scale_x_discrete(limits=lambda e: list(reversed(e)))
         + p9.coord_flip(),
         "group p-hat": vln_pl
         + p9.aes(
-            x=apl.obs(cond_lab),
+            x=apl.obs(cond_col),
             fill=np.where(
-                apl.obsm(obsm_sl_oi, sP.BIN_KEY).fetch(adata) & (apl.obs(cond_lab).fetch(adata) != ctl_val), "1", "0"
+                apl.obsm(obsm_sl_oi, sP.BIN_KEY).fetch(adata) & (apl.obs(cond_col).fetch(adata) != ctl_val), "1", "0"
             ),
         )
         + p9.scale_x_discrete(limits=lambda e: sorted(e, key=lambda x: (ctl_val not in x, x))),
         "group p-hat (ctl split)": vln_pl
-        + p9.aes(x=apl.obs(cond_lab), fill=np.where(apl.obsm(obsm_sl_oi, sP.BIN_KEY).fetch(adata), "1", "0"))
+        + p9.aes(x=apl.obs(cond_col), fill=np.where(apl.obsm(obsm_sl_oi, sP.BIN_KEY).fetch(adata), "1", "0"))
         + p9.scale_x_discrete(limits=lambda e: sorted(e, key=lambda x: (ctl_val not in x, x))),
     }
+
+
+def run_deg_groups(adata: ad.AnnData, k_oi: int, cond_col: str, ctl_val: str, fmt_str: str = "sP_p_hat_k={k}") -> pd.DataFrame:
+    obsm_sl_oi = fmt_str.format(k=k_oi)
+    case_val = adata.obs[cond_col].loc[lambda e: e != ctl_val].unique().tolist()
+    assert len(case_val) == 1, "cannot have more than one non control value for this to work"
+    case_val = case_val[0]
+
+    deg_conf = {
+        "case_vs_control": ({apl.obs(cond_col): case_val},),
+        #
+        "case1_vs_rest": ({apl.obs(cond_col): case_val, apl.obsm(obsm_sl_oi, sP.BIN_KEY): True},),
+        "case1_vs_control": (
+            {apl.obs(cond_col): case_val, apl.obsm(obsm_sl_oi, sP.BIN_KEY): True},
+            {apl.obs(cond_col): ctl_val},
+        ),
+        "case1_vs_case0": (
+            {apl.obs(cond_col): case_val, apl.obsm(obsm_sl_oi, sP.BIN_KEY): True},
+            {apl.obs(cond_col): case_val, apl.obsm(obsm_sl_oi, sP.BIN_KEY): False},
+        ),
+        "case1_vs_control0": (
+            {apl.obs(cond_col): case_val, apl.obsm(obsm_sl_oi, sP.BIN_KEY): True},
+            {apl.obs(cond_col): ctl_val, apl.obsm(obsm_sl_oi, sP.BIN_KEY): False},
+        ),
+        #
+        "case0_vs_control": (
+            {apl.obs(cond_col): case_val, apl.obsm(obsm_sl_oi, sP.BIN_KEY): False},
+            {apl.obs(cond_col): ctl_val},
+        ),
+        "case0_vs_control0": (
+            {apl.obs(cond_col): case_val, apl.obsm(obsm_sl_oi, sP.BIN_KEY): False},
+            {apl.obs(cond_col): ctl_val, apl.obsm(obsm_sl_oi, sP.BIN_KEY): False},
+        ),
+        #
+        "control1_vs_control0": (
+            {apl.obs(cond_col): ctl_val, apl.obsm(obsm_sl_oi, sP.BIN_KEY): True},
+            {apl.obs(cond_col): ctl_val, apl.obsm(obsm_sl_oi, sP.BIN_KEY): False},
+        ),
+    }
+
+    deg_results = pd.concat({k: sP.diag.run_deg_mwu(adata, *v) for k, v in deg_conf.items()}, names=["cmp"]).reset_index(
+        drop=False
+    )
+    deg_results["cmp"] = pd.Categorical(deg_results["cmp"], categories=deg_conf.keys(), ordered=True)
+
+    return deg_results

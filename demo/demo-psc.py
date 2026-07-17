@@ -10,21 +10,28 @@
 from functools import partial
 from pathlib import Path
 from pickle import dump, load
+from warnings import catch_warnings, simplefilter
 
 import anndata as ad
 import numpy as np
 import pandas as pd
 import scanpy as sc
+import upsetplot as up
+from matplotlib import pyplot as plt
 from plotnine import *  # noqa: F403
-from shared import pl_k_sP, psc_ds, run_nmf, run_proc_per_ds, viz_defs
+from shared import pl_k_sP, psc_ds, run_deg_groups, run_nmf, run_proc_per_ds, viz_defs
 
+import apl
 import spatialpeeler as sP
 from spatialpeeler.diag import comp_sparsity, sweep_uns
 
+# %%
 viz_defs()
 RAND_SEED = 28
 # define helper function for plotting
-pl_help = partial(pl_k_sP, cond_lab="group", sample_lab="sample_id", ctl_val="CTL")
+pl_help = partial(pl_k_sP, cond_col="group", sample_col="sample_id", ctl_val="CTL")
+SP_FACT_PAT_STR = "sP_p_hat_k={k}"
+SP_GENE_PAT_STR = "sp_gene_id_k={k}"
 
 # %%
 # load dataset + run NMF
@@ -41,7 +48,15 @@ else:
     run_proc_per_ds(adatas)
 
     psc = ad.concat(adatas, label="sample_id", index_unique="_")
+
     sc.pp.filter_genes(psc, min_cells=psc.n_obs // 500)
+
+    psc.var["SYMBOL"] = (
+        sc.queries.biomart_annotations("hsapiens", ["ensembl_gene_id", "external_gene_name"], host="grch37.ensembl.org")
+        .set_index("ensembl_gene_id")
+        .merge(psc.var.index.to_series(), left_index=True, right_index=True, how="right")["external_gene_name"]
+        .fillna(psc.var.index.to_series())
+    )
 
     run_nmf(psc, 30, RAND_SEED)
 
@@ -70,7 +85,7 @@ X_spars = psc.X.nnz / np.prod(psc.X.shape)  # ty:ignore[unresolved-attribute]
 # %%
 # run factor-wise regression step
 for k in range(psc.obsm["X_nmf"].shape[1]):
-    sP.run_fact_reg(psc, "group", "CTL", k, f"sP_p_hat_k={k:02}", X_key="X_nmf")
+    sP.run_fact_reg(psc, "group", "CTL", k, SP_FACT_PAT_STR.format(k=k), X_key="X_nmf")
 
 print(psc)
 
@@ -79,7 +94,7 @@ print(psc)
 # we can extract and collate the model betas and other statistics using the sweep_uns function
 # %%
 (
-    sweep_uns(psc, "sP_p_hat_k={k}")
+    sweep_uns(psc, SP_FACT_PAT_STR)
     >> ggplot()
     + aes(x="reorder(k, beta)", fill="-np.log(pval)", y="beta")
     + geom_col(color="black")
@@ -89,27 +104,9 @@ print(psc)
     + scale_y_symlog()
 ).show()
 
-
 # %% [markdown]
-# we can see that factor 4 has a strong case-specific profile \
-# we plot its (and associated p_hat) distributions below:
-# %%
-for k in [4]:
-    for p in pl_help(psc, k).values():
-        p.show()
-
-
-# %% [markdown]
-# we can also see that factor 6 shows a strong control-specific profile \
-# we plot its (and associated p_hat) distributions below:
-# %%
-for k in [6]:
-    for p in pl_help(psc, k).values():
-        p.show()
-
-# %% [markdown]
-# we can see that both of the above factor p-hat values show compelling spatial properties
-# to explore this further, we can plot values for Geary's C and Morans' I per sample per k:
+# to explroe the spatial properties of the resulting factor patterns, we can compute and plot
+# spatial statistics for each on a per sample basis (in this case Geary's C and Morans' I):
 # %%
 sp_stat_df = pd.concat(
     [
@@ -119,7 +116,7 @@ sp_stat_df = pd.concat(
             psc.obs.groupby("sample_id", observed=True).indices.items(),
         )
         for stat, stat_fn in (("moran's i", sc.metrics.morans_i), ("geary's c", sc.metrics.gearys_c))
-        for k, k_pat in map(lambda k: (k, sub.obsm[f"sP_p_hat_k={k:02}"][sP.PAT_KEY]), range(sub.obsm["X_nmf"].shape[1]))
+        for k, k_pat in map(lambda k: (k, sub.obsm[SP_FACT_PAT_STR.format(k=k)][sP.PAT_KEY]), range(sub.obsm["X_nmf"].shape[1]))
     ],
     ignore_index=True,
 )
@@ -133,3 +130,79 @@ sp_stat_df = pd.concat(
     + labs(x="", y="k", fill="")
     + theme(axis_text_x=element_text(rotation=90))
 ).show()
+
+# %% [markdown]
+# we can see that factor 4 has a strong case-specific profile (positive beta) and shows noticeable differences
+# between case and control in its spatial statistics, so we plot its distributions below:
+# %%
+for k in [4]:
+    for p in pl_help(psc, k).values():
+        p.show()
+
+
+# %% [markdown]
+# we can see that factor 6 has a strong control-specific profile (negative beta) and shows noticeable differences
+# between case and control in its spatial statistics, so we plot its distributions below:
+# %%
+for k in [6]:
+    for p in pl_help(psc, k).values():
+        p.show()
+
+
+# %% [markdown]
+# to explore this further, we proceed w/ a gene-wise analysis for factor 4, which has the largest beta:
+# %%
+ks_oi = [4]
+for k in ks_oi:
+    sP.run_gene_reg(psc, SP_FACT_PAT_STR.format(k=k), SP_GENE_PAT_STR.format(k=k), layer="counts")
+degs = {k: run_deg_groups(psc, k, "group", "CTL") for k in ks_oi}
+sig_sub = {k: degs[k].loc[lambda e: (e["adj_pval"] < 0.05) & (e["lfc"].abs() > 1)] for k in ks_oi}
+
+# %%
+for k in ks_oi:
+    (
+        apl.PlotAdata(psc)
+        + aes(
+            x=apl.varm("X_nmf", k),
+            y=apl.varm(SP_GENE_PAT_STR.format(k=k), "corr"),
+            colour=stage(apl.varm(SP_GENE_PAT_STR.format(k=k), "reg_pval"), "-np.log(color)"),
+            label=np.where(
+                np.argsort(np.argsort(-np.abs(np.asarray(psc.varm[SP_GENE_PAT_STR.format(k=k)]["corr"])))) < 8,
+                psc.var["SYMBOL"],
+                None,  # ty:ignore[invalid-argument-type]
+            ),
+        )
+        + geom_point(size=1.5, shape="o", stroke=0)
+        + geom_label(adjust_text={}, na_rm=True)
+        + labs(
+            colour="-log(pval)",
+            x=f"NMF[{k}]",
+            y="pearson correlation",
+            title=f"NMF loading / p\u0302 relationship for k={k}",
+        )
+    ).show()
+
+    sig_counts = sig_sub[k].groupby("cmp", observed=True)["gene"].count()
+    (
+        ggplot(sig_counts.reset_index(drop=False))
+        + aes(x="cmp", y="gene", fill=after_stat("y"), label=after_stat("y"))
+        + geom_col(color="black")
+        + geom_text(nudge_y=sig_counts.max() * 0.025)
+        + theme(axis_text_x=element_text(angle=45, hjust=1))
+        + guides(fill="none")
+        + labs(x="", y="# of DEGs (adj_pval < 0.05 & |lfc| > 1)", title=f"DEG counts for k={k}")
+    ).show()
+
+# %% [markdown]
+# we can further visualize the permutations of gene set size in these comparisons via the upsetplot package:
+# %%
+for k in ks_oi:
+    with catch_warnings():
+        simplefilter(action="ignore", category=FutureWarning)
+        up.UpSet(
+            up.from_contents({k: v.array for k, v in sig_sub[k].groupby("cmp", observed=True)["gene"]}),
+            subset_size="count",
+            max_subset_rank=8,
+        ).plot()
+
+    plt.show()
