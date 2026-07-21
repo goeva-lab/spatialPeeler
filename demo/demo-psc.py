@@ -7,6 +7,9 @@
 # ---
 # %%
 # ruff: noqa: F405
+
+from _shared import pl_k_sP, psc_ds, run_deg_groups, run_nmf, run_proc_per_ds, viz_defs  # isort:skip
+
 from functools import partial
 from pathlib import Path
 from pickle import dump, load
@@ -16,12 +19,11 @@ import anndata as ad
 import numpy as np
 import pandas as pd
 import scanpy as sc
+import uapl
 import upsetplot as up
 from matplotlib import pyplot as plt
 from plotnine import *  # noqa: F403
-from shared import pl_k_sP, psc_ds, run_deg_groups, run_nmf, run_proc_per_ds, viz_defs
 
-import apl
 import spatialpeeler as sP
 from spatialpeeler.diag import comp_sparsity, sweep_uns
 
@@ -154,18 +156,14 @@ for k in [6]:
 # %%
 ks_oi = [4]
 for k in ks_oi:
-    sP.run_gene_reg(psc, SP_FACT_PAT_STR.format(k=k), SP_GENE_PAT_STR.format(k=k), layer="counts")
-degs = {k: run_deg_groups(psc, k, "group", "CTL") for k in ks_oi}
-sig_sub = {k: degs[k].loc[lambda e: (e["adj_pval"] < 0.05) & (e["lfc"].abs() > 1)] for k in ks_oi}
-
+    sP.run_gene_reg(psc, SP_FACT_PAT_STR.format(k=k), SP_GENE_PAT_STR.format(k=k), layer="counts", run_reg=False)
 # %%
 for k in ks_oi:
     (
-        apl.PlotAdata(psc)
+        uapl.PlotAdata(psc)
         + aes(
-            x=apl.varm("X_nmf", k),
-            y=apl.varm(SP_GENE_PAT_STR.format(k=k), "corr"),
-            colour=stage(apl.varm(SP_GENE_PAT_STR.format(k=k), "reg_pval"), "-np.log(color)"),
+            x=uapl.varm("X_nmf", k),
+            y=uapl.varm(SP_GENE_PAT_STR.format(k=k), "corr"),
             label=np.where(
                 np.argsort(np.argsort(-np.abs(np.asarray(psc.varm[SP_GENE_PAT_STR.format(k=k)]["corr"])))) < 8,
                 psc.var["SYMBOL"],
@@ -178,10 +176,15 @@ for k in ks_oi:
             colour="-log(pval)",
             x=f"NMF[{k}]",
             y="pearson correlation",
-            title=f"NMF loading / p\u0302 relationship for k={k}",
+            title=f"NMF loading / p\u0302-gene-correlation relationship for k={k}",
         )
     ).show()
+# %%
+degs = {k: run_deg_groups(psc, k, "group", "CTL") for k in ks_oi}
+sig_sub = {k: degs[k].loc[lambda e: (e["adj_pval"] < 0.05) & (e["lfc"].abs() > 1)] for k in ks_oi}
 
+# %%
+for k in ks_oi:
     sig_counts = sig_sub[k].groupby("cmp", observed=True)["gene"].count()
     (
         ggplot(sig_counts.reset_index(drop=False))

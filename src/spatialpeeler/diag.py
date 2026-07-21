@@ -10,13 +10,12 @@ import anndata as ad
 import numpy as np
 import pandas as pd
 import plotnine as p9
+import uapl
 from scipy.sparse import sparray, spmatrix
 from scipy.stats import mannwhitneyu
 
-import apl
 
-
-def mk_mask(adata: ad.AnnData, items: Iterable[tuple[apl.FetchBase, Any]]) -> np.ndarray:
+def mk_mask(adata: ad.AnnData, items: Iterable[tuple[uapl.FetchBase, Any]]) -> np.ndarray:
     itr = iter(items)
     k, v = next(itr)
     assert not k.by_var
@@ -30,8 +29,8 @@ def mk_mask(adata: ad.AnnData, items: Iterable[tuple[apl.FetchBase, Any]]) -> np
 
 def run_deg_mwu(
     adata: ad.AnnData,
-    g1: dict[apl.FetchBase, Any],
-    g2: dict[apl.FetchBase, Any] | None = None,
+    g1: dict[uapl.FetchBase, Any],
+    g2: dict[uapl.FetchBase, Any] | None = None,
     layer: str | None = None,
 ) -> pd.DataFrame:
     """

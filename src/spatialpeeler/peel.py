@@ -4,6 +4,9 @@ from warnings import catch_warnings, simplefilter
 import numpy as np
 import pandas as pd
 import scanpy as sc
+from jax import jit
+from jax import numpy as jnp
+from scipy import sparse as sp
 from scipy.cluster.vq import kmeans2
 from scipy.special import xlogy
 from scipy.stats import zscore
@@ -15,10 +18,34 @@ BIN_KEY = "sP_bin"
 INP_KEY = "sP_inp"
 
 
-def wcorr(x: np.ndarray, y: np.ndarray, w: np.ndarray | None = None) -> np.ndarray:
-    with catch_warnings():
-        simplefilter(action="ignore", category=RuntimeWarning, lineno=21)
-        return np.cov(x, y, aweights=w)[0, 1] / np.sqrt(np.cov(x, aweights=w) * np.cov(y, aweights=w))
+def pearsonr_w(x: jnp.ndarray, y: jnp.ndarray, w: jnp.ndarray):
+    x_min_mu = x - jnp.average(x, weights=w)
+    y_min_mu = y - jnp.average(y, weights=w)
+    x_var = jnp.average(jnp.square(x_min_mu), weights=w)
+    y_var = jnp.average(jnp.square(y_min_mu), weights=w)
+
+    return jnp.average(x_min_mu * y_min_mu, weights=w) / jnp.sqrt(x_var * y_var)
+
+
+def pearsonr(x: jnp.ndarray, y: jnp.ndarray):
+    x_min_mu = x - jnp.mean(x)
+    y_min_mu = y - jnp.mean(y)
+    x_var = jnp.average(jnp.square(x_min_mu))
+    y_var = jnp.average(jnp.square(y_min_mu))
+
+    return jnp.average(x_min_mu * y_min_mu) / jnp.sqrt(x_var * y_var)
+
+
+def corr_feats(X: sp.csc_array, y: np.ndarray, w: np.ndarray | None = None) -> np.ndarray:
+    y: jnp.ndarray = jnp.asarray(y)
+
+    if w is None:
+        f = jit(lambda x: pearsonr(x, y))
+    else:
+        w: jnp.ndarray = jnp.asarray(w)
+        f = jit(lambda x: pearsonr_w(x, y, w))
+
+    return np.fromiter(map(lambda j: f(jnp.asarray(X[:, j].toarray())), range(0, X.shape[1])), dtype=float, count=X.shape[1])
 
 
 def fit_sm(X: np.ndarray, y: np.ndarray, with_intercept: bool, model: type[Model]) -> Results:
@@ -124,12 +151,14 @@ def run_gene_reg(
     adata: sc.AnnData,
     sp_step1_key: str,
     out_key: str,
+    run_reg: bool = True,
+    run_corr: bool = True,
     layer: str | None = None,
 ) -> None:
     """
     runs the second step of the spatialPeeler process by:
-    - running correlation and regression-based (via OLS) differential expression analyses between
-      each gene and model outputs generated from the previous spatialPeeler step
+    - compute correlations between spatialPeeler outputs and gene expression
+    - compute regression-based (via OLS) differential expression analyses between spatialPeeler outputs and gene expression
     - adding resulting outputs to the input ``.varm`` slot
 
     :param adata: input data, already processed by :func:`run_fact_reg`, must not be a view, will be mutated
@@ -139,6 +168,7 @@ def run_gene_reg(
 
     :raises ValueError: if input adata is a view
     """
+    assert sum([run_reg, run_corr]) > 0, "at least one form of analysis must be enabled"
     if adata.is_view:
         raise ValueError("input anndata object _must not_ be a view (this function mutates its input directly)")
 
@@ -156,49 +186,48 @@ def run_gene_reg(
     else:
         w_vec, pat_vec = np.asarray(w_vec), np.asarray(pat_vec)
 
-    z_pat_vec = zscore(pat_vec)
+    out: dict = {"gene": adata.var_names}
 
-    corr_arr = np.full((adata.n_vars,), np.nan)
-    wcorr_arr = np.full((adata.n_vars,), np.nan)
-    out_keys = ("beta", "pval", "rsq")
-    preg_arrs = (
-        np.full((adata.n_vars,), np.nan),
-        np.full((adata.n_vars,), np.nan),
-        np.full((adata.n_vars,), np.nan),
-    )
-    zpreg_arrs = (
-        np.full((adata.n_vars,), np.nan),
-        np.full((adata.n_vars,), np.nan),
-        np.full((adata.n_vars,), np.nan),
-    )
+    if run_corr:
+        X_csc = sp.csc_array(X)
+        out["corr"] = corr_feats(X_csc, pat_vec)
+        out["wcorr"] = corr_feats(X_csc, pat_vec, w_vec)
 
-    for j in range(X.shape[1]):  # ty: ignore[unresolved-attribute]
-        gvec = X[:, j]  # ty: ignore[not-subscriptable]
-        if not isinstance(gvec, np.ndarray):
-            gvec = np.ravel(gvec.toarray())  # ty: ignore[unresolved-attribute]
+    if run_reg:
+        z_pat_vec = zscore(pat_vec)
+        out_keys = ("beta", "pval", "rsq")
+        preg_arrs = (
+            np.full((adata.n_vars,), np.nan),
+            np.full((adata.n_vars,), np.nan),
+            np.full((adata.n_vars,), np.nan),
+        )
+        zpreg_arrs = (
+            np.full((adata.n_vars,), np.nan),
+            np.full((adata.n_vars,), np.nan),
+            np.full((adata.n_vars,), np.nan),
+        )
+        for j in range(X.shape[1]):  # ty: ignore[unresolved-attribute]
+            gvec = X[:, j]  # ty: ignore[not-subscriptable]
+            if not isinstance(gvec, np.ndarray):
+                gvec = np.ravel(gvec.toarray())  # ty: ignore[unresolved-attribute]
 
-        corr_arr[j] = wcorr(gvec, pat_vec)
-        wcorr_arr[j] = wcorr(gvec, pat_vec, w_vec)
-
-        preg = fit_sm(pat_vec, gvec, True, sm.OLS)
-        preg_arrs[0][j] = preg.params[0]
-        preg_arrs[1][j] = preg.pvalues[0] * adata.n_vars  # ty:ignore[unresolved-attribute]
-        with catch_warnings():
-            simplefilter(action="ignore", category=RuntimeWarning)
-            preg_arrs[2][j] = preg.rsquared  # ty:ignore[unresolved-attribute]
-
-        z_gvec = zscore(gvec)
-        z_index = np.nonzero(np.isfinite(z_gvec))[0]
-        if z_index.size > 0:
-            zpreg = fit_sm(z_pat_vec, z_gvec, True, sm.OLS)
-            zpreg_arrs[0][j] = zpreg.params[0]
-            zpreg_arrs[1][j] = zpreg.pvalues[0] * adata.n_vars  # ty:ignore[unresolved-attribute]
+            preg = fit_sm(pat_vec, gvec, True, sm.OLS)
+            preg_arrs[0][j] = preg.params[0]
+            preg_arrs[1][j] = preg.pvalues[0] * adata.n_vars  # ty:ignore[unresolved-attribute]
             with catch_warnings():
                 simplefilter(action="ignore", category=RuntimeWarning)
-                zpreg_arrs[2][j] = zpreg.rsquared  # ty:ignore[unresolved-attribute]
+                preg_arrs[2][j] = preg.rsquared  # ty:ignore[unresolved-attribute]
 
-    adata.varm[out_key] = pd.DataFrame(
-        {"gene": adata.var_names, "corr": corr_arr, "wcorr": wcorr_arr}
-        | dict(zip((f"reg_{e}" for e in out_keys), preg_arrs))
-        | dict(zip((f"zreg_{e}" for e in out_keys), zpreg_arrs))
-    ).set_index("gene")
+            z_gvec = zscore(gvec)
+            z_index = np.nonzero(np.isfinite(z_gvec))[0]
+            if z_index.size > 0:
+                zpreg = fit_sm(z_pat_vec, z_gvec, True, sm.OLS)
+                zpreg_arrs[0][j] = zpreg.params[0]
+                zpreg_arrs[1][j] = zpreg.pvalues[0] * adata.n_vars  # ty:ignore[unresolved-attribute]
+                with catch_warnings():
+                    simplefilter(action="ignore", category=RuntimeWarning)
+                    zpreg_arrs[2][j] = zpreg.rsquared  # ty:ignore[unresolved-attribute]
+        out |= dict(zip((f"reg_{e}" for e in out_keys), preg_arrs))
+        out |= dict(zip((f"zreg_{e}" for e in out_keys), zpreg_arrs))
+
+    adata.varm[out_key] = pd.DataFrame(out).set_index("gene")
