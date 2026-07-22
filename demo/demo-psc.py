@@ -8,7 +8,7 @@
 # %%
 # ruff: noqa: F405
 
-from _shared import pl_k_sP, psc_ds, run_deg_groups, run_nmf, run_proc_per_ds, viz_defs  # isort:skip
+from _shared import pl_k_sP, psc_ds, run_deg_groups, run_nmf, run_proc_per_ds, viz_defs, comp_spat_stats  # isort:skip
 
 from functools import partial
 from pathlib import Path
@@ -17,7 +17,6 @@ from warnings import catch_warnings, simplefilter
 
 import anndata as ad
 import numpy as np
-import pandas as pd
 import scanpy as sc
 import uapl
 import upsetplot as up
@@ -107,21 +106,10 @@ print(psc)
 ).show()
 
 # %% [markdown]
-# to explroe the spatial properties of the resulting factor patterns, we can compute and plot
+# to explore the spatial properties of the resulting factor patterns, we can compute and plot
 # spatial statistics for each on a per sample basis (in this case Geary's C and Morans' I):
 # %%
-sp_stat_df = pd.concat(
-    [
-        pd.DataFrame({"k": k, "stat": stat, "val": stat_fn(sub, k_pat), "sample": sample}, index=np.asarray([0]))
-        for sample, sub in map(
-            lambda e: (e[0], sc.pp.neighbors(psc[e[1], :], use_rep="spatial", copy=True)),
-            psc.obs.groupby("sample_id", observed=True).indices.items(),
-        )
-        for stat, stat_fn in (("moran's i", sc.metrics.morans_i), ("geary's c", sc.metrics.gearys_c))
-        for k, k_pat in map(lambda k: (k, sub.obsm[SP_FACT_PAT_STR.format(k=k)][sP.PAT_KEY]), range(sub.obsm["X_nmf"].shape[1]))
-    ],
-    ignore_index=True,
-)
+sp_stat_df = comp_spat_stats(psc, SP_FACT_PAT_STR, "sample_id")
 # %%
 (
     ggplot(sp_stat_df)

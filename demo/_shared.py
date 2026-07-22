@@ -229,9 +229,9 @@ def pl_k_sP(
             labeller=lambda e: {"False": f"{non_ctl_val}-0", "True": f"{non_ctl_val}-1"}.get(e, e),  # ty:ignore[invalid-argument-type]
         ),
         "emb/p-hat": plo
-        + p9.aes(x=uapl.obsm(obsm_sl_oi, sP.peel.INP_KEY), y=uapl.obsm(obsm_sl_oi, sP.PAT_KEY), color=uapl.obs("group"))
+        + p9.aes(x=uapl.obsm(obsm_sl_oi, sP.peel.INP_KEY), y=uapl.obsm(obsm_sl_oi, sP.PAT_KEY), color=uapl.obs(cond_col))
         + p9.geom_point(alpha=1)
-        + p9.facet_wrap(uapl.obs("group"))
+        + p9.facet_wrap(uapl.obs(cond_col))
         + p9.scale_x_continuous(expand=(0.1, 0))
         + p9.labs(x=f"embedding [k={k_oi}]", y="p\u0302", title=f"p\u0302 / embedding for k={k_oi}"),
         "sample p-hat": vln_pl
@@ -296,3 +296,24 @@ def run_deg_groups(adata: ad.AnnData, k_oi: int, cond_col: str, ctl_val: str, fm
     deg_results["cmp"] = pd.Categorical(deg_results["cmp"], categories=deg_conf.keys(), ordered=True)
 
     return deg_results
+
+
+def comp_spat_stats(adata: ad.AnnData, sP_key: str, sample_col: str) -> pd.DataFrame:
+    out = {"k": [], "stat": [], "sample": [], "val": []}
+    for sample, sub in adata.obs.groupby(sample_col, observed=True).indices.items():
+        sub = sc.pp.neighbors(adata[sub, :], use_rep="spatial", copy=True)
+        for k in range(sub.obsm["X_nmf"].shape[1]):
+            k_pat = sub.obsm[sP_key.format(k=k)][sP.PAT_KEY]
+
+            for stat, stat_fn in [
+                ("moran's i", sc.metrics.morans_i),
+                ("geary's c", sc.metrics.gearys_c),
+            ]:
+                out["k"].append(k)
+                out["stat"].append(stat)
+                out["sample"].append(sample)
+
+                na_filt = np.asarray(k_pat.notna())
+                out["val"].append(stat_fn(sub[na_filt, :], k_pat.loc[na_filt]))
+
+    return pd.DataFrame(out)
