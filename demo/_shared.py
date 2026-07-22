@@ -176,12 +176,14 @@ def pl_k_sP(
         .iloc[[1, 2]]
         .mean()
     )
+    cent_sp = lambda c: p9.stage(uapl.obsm(spatial_obsm, c), after_stat=f"{c}-({c}.max() - {c}.min())/2")  # noqa: E731
+
     sp_pl = [
-        p9.aes(x=uapl.obsm(spatial_obsm, "x"), y=uapl.obsm(spatial_obsm, "y")),
+        p9.aes(x=cent_sp("x"), y=cent_sp("y")),
         p9.geom_point(shape="h", size=0.1),
         p9.coord_fixed(),
-        p9.facet_wrap([uapl.obs(cond_col), uapl.obs(sample_col)], nrow=2, shrink=False, scales="free"),
         p9.theme(axis_text=p9.element_blank(), axis_ticks=p9.element_blank(), aspect_ratio=1),
+        p9.labs(x="x", y="y"),
     ]
     vln_pl = (
         plo
@@ -201,11 +203,11 @@ def pl_k_sP(
         + p9.aes(color=uapl.obsm(obsm_sl_oi, sP.PAT_KEY))
         + p9.scale_color_cmap("cividis")
         + p9.labs(color="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi}")
-        + p9.facet_wrap([uapl.obs(cond_col), uapl.obs(sample_col)], nrow=2, shrink=False, scales="free"),
+        + p9.facet_wrap([uapl.obs(cond_col), uapl.obs(sample_col)], nrow=2, shrink=True),
         "spatial bin": sum(sp_pl, start=plo)
         + p9.aes(color=uapl.obs(cond_col).fetch(adata) + np.where(uapl.obsm(obsm_sl_oi, sP.BIN_KEY).fetch(adata), "-1", "-0"))
         + p9.labs(color="refined\nlabel", title=f"refined label spatial distributions for k={k_oi}")
-        + p9.facet_wrap([uapl.obs(cond_col), uapl.obs(sample_col)], nrow=2, shrink=False, scales="free"),
+        + p9.facet_wrap([uapl.obs(cond_col), uapl.obs(sample_col)], nrow=2, shrink=True),
         "spatial p-hat (ctl/split)": sum(sp_pl, start=sum(sp_pl, start=uapl.PlotAdata(adata[adata.obs[cond_col] == ctl_val])))
         + p9.aes(color=uapl.obsm(obsm_sl_oi, sP.PAT_KEY))
         + p9.scale_color_cmap("cividis")
@@ -213,9 +215,8 @@ def pl_k_sP(
         + p9.facet_grid(
             cols=uapl.obs(sample_col),
             rows=uapl.obsm(obsm_sl_oi, sP.BIN_KEY),
-            shrink=False,
-            scales="free",
             labeller=lambda e: {"False": f"{ctl_val}-0", "True": f"{ctl_val}-1"}.get(e, e),  # ty:ignore[invalid-argument-type]
+            shrink=True,
         ),
         "spatial p-hat (case/split)": sum(sp_pl, start=sum(sp_pl, start=uapl.PlotAdata(adata[adata.obs[cond_col] != ctl_val])))
         + p9.aes(color=uapl.obsm(obsm_sl_oi, sP.PAT_KEY))
@@ -224,9 +225,8 @@ def pl_k_sP(
         + p9.facet_grid(
             cols=uapl.obs(sample_col),
             rows=uapl.obsm(obsm_sl_oi, sP.BIN_KEY),
-            shrink=False,
-            scales="free",
             labeller=lambda e: {"False": f"{non_ctl_val}-0", "True": f"{non_ctl_val}-1"}.get(e, e),  # ty:ignore[invalid-argument-type]
+            shrink=True,
         ),
         "emb/p-hat": plo
         + p9.aes(x=uapl.obsm(obsm_sl_oi, sP.peel.INP_KEY), y=uapl.obsm(obsm_sl_oi, sP.PAT_KEY), color=uapl.obs(cond_col))
