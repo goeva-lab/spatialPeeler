@@ -208,7 +208,7 @@ def pl_k_sP(
         + p9.aes(color=uapl.obs(cond_col).fetch(adata) + np.where(uapl.obsm(obsm_sl_oi, sP.BIN_KEY).fetch(adata), "-1", "-0"))
         + p9.labs(color="refined\nlabel", title=f"refined label spatial distributions for k={k_oi}")
         + p9.facet_wrap([uapl.obs(cond_col), uapl.obs(sample_col)], nrow=2, shrink=True),
-        "spatial p-hat (ctl/split)": sum(sp_pl, start=sum(sp_pl, start=uapl.PlotAdata(adata[adata.obs[cond_col] == ctl_val])))
+        "spatial p-hat (ctl/split)": sum(sp_pl, start=uapl.PlotAdata(adata[adata.obs[cond_col] == ctl_val]))
         + p9.aes(color=uapl.obsm(obsm_sl_oi, sP.PAT_KEY))
         + p9.scale_color_cmap("cividis")
         + p9.labs(color="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi} for control cells (split by refinement)")
@@ -218,7 +218,7 @@ def pl_k_sP(
             labeller=lambda e: {"False": f"{ctl_val}-0", "True": f"{ctl_val}-1"}.get(e, e),  # ty:ignore[invalid-argument-type]
             shrink=True,
         ),
-        "spatial p-hat (case/split)": sum(sp_pl, start=sum(sp_pl, start=uapl.PlotAdata(adata[adata.obs[cond_col] != ctl_val])))
+        "spatial p-hat (case/split)": sum(sp_pl, start=uapl.PlotAdata(adata[adata.obs[cond_col] != ctl_val]))
         + p9.aes(color=uapl.obsm(obsm_sl_oi, sP.PAT_KEY))
         + p9.scale_color_cmap("cividis")
         + p9.labs(color="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi} for case cells (split by refinement)")

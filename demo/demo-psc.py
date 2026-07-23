@@ -164,7 +164,7 @@ for k in ks_oi:
             colour="-log(pval)",
             x=f"NMF[{k}]",
             y="pearson correlation",
-            title=f"NMF loading / p\u0302-gene-correlation relationship for k={k}",
+            title=f"NMF loading / p\u0302-gene correlation relationship for k={k}",
         )
     ).show()
 # %%

@@ -52,7 +52,7 @@ else:
         ),
     )
     for e in adatas.values():
-        sc.pp.filter_cells(e, min_counts=1000)
+        sc.pp.filter_cells(e, min_counts=100)
 
     run_proc_per_ds(adatas)
 
@@ -175,7 +175,7 @@ sP.run_gene_reg(rml, SP_FACT_PAT_STR.format(k=k), SP_GENE_PAT_STR.format(k=k), l
         colour="-log(pval)",
         x=f"NMF[{k}]",
         y="pearson correlation",
-        title=f"NMF loading / p\u0302-gene-correlation relationship for k={k}",
+        title=f"NMF loading / p\u0302-gene correlation relationship for k={k}",
     )
 ).show()
 # %%
