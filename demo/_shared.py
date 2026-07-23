@@ -164,6 +164,7 @@ def pl_k_sP(
     spatial_obsm: str = "spatial",
 ) -> Mapping[str, p9.ggplot]:
     obsm_sl_oi = fmt_str.format(k=k_oi)
+    adata = adata[np.ravel(np.argsort(adata.obsm[obsm_sl_oi][sP.BIN_KEY])), :]
     plo = uapl.PlotAdata(adata)
 
     p_hat_thresh = (
