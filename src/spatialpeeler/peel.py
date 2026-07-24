@@ -30,10 +30,10 @@ def pearsonr_w(x: jnp.ndarray, y: jnp.ndarray, w: jnp.ndarray):
 def pearsonr(x: jnp.ndarray, y: jnp.ndarray):
     x_min_mu = x - jnp.mean(x)
     y_min_mu = y - jnp.mean(y)
-    x_var = jnp.average(jnp.square(x_min_mu))
-    y_var = jnp.average(jnp.square(y_min_mu))
+    x_var = jnp.mean(jnp.square(x_min_mu))
+    y_var = jnp.mean(jnp.square(y_min_mu))
 
-    return jnp.average(x_min_mu * y_min_mu) / jnp.sqrt(x_var * y_var)
+    return jnp.mean(x_min_mu * y_min_mu) / jnp.sqrt(x_var * y_var)
 
 
 def corr_feats(X: sp.csc_array, y: np.ndarray, w: np.ndarray | None = None) -> np.ndarray:
@@ -145,6 +145,10 @@ def run_fact_reg(
         "mse": np.sum(np.square(y - pat_vec)),
         "loss": np.sum(-(xlogy(y, pat_vec) + xlogy(1 - y, 1 - pat_vec))),
     }
+
+    # invert p-hat for negative beta values
+    if adata.uns[out_key]["beta"] < 0:
+        adata.obsm[out_key][PAT_KEY] = 1 - adata.obsm[out_key][PAT_KEY]
 
 
 def run_gene_reg(
