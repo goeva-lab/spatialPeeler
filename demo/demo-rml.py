@@ -27,10 +27,10 @@ import spatialpeeler as sP
 from spatialpeeler.diag import comp_sparsity, sweep_uns
 
 # %%
-viz_defs()
+viz_defs(dpi=128)
 RAND_SEED = 28
 # define helper function for plotting
-pl_help = partial(pl_k_sP, cond_col="Condition", sample_col="puck_id_cond", ctl_val="Saline")
+pl_help = partial(pl_k_sP, cond_col="Condition", sample_col="puck_id", ctl_val="Saline", sp_p_size=0.3)
 SP_FACT_PAT_STR = "sP_p_hat_k={k}"
 SP_GENE_PAT_STR = "sp_gene_id_k={k}"
 
@@ -132,17 +132,9 @@ print(rml)
 # to explore the spatial properties of the resulting factor patterns, we can compute and plot
 # spatial statistics for each on a per sample basis (in this case Geary's C and Morans' I):
 # %%
-sp_stat_df = comp_spat_stats(rml, SP_FACT_PAT_STR, "puck_id_cond")
+sp_stat_df, sp_stat_pl = comp_spat_stats(rml, SP_FACT_PAT_STR, "puck_id", "Condition", "Saline")
 # %%
-(
-    ggplot(sp_stat_df)
-    + aes(x="sample", y="factor(k)", fill="val")
-    + geom_tile()
-    + facet_wrap("stat", nrow=1)
-    + scale_y_discrete(limits=lambda e: list(reversed(e)))
-    + labs(x="", y="k", fill="")
-    + theme(axis_text_x=element_text(rotation=90))
-).show()
+(sp_stat_pl & theme(figure_size=(16, 9))).show()  # ty:ignore[unsupported-operator]
 
 # %% [markdown]
 # we can see that factor 6 has a strong difference case-specific profile and shows interesting spatial properties
@@ -156,53 +148,59 @@ for p in pl_help(rml[rml.obsm["X_nmf"][:, k] > 0, :], k).values():
 # %% [markdown]
 # to explore this further, we proceed w/ a gene-wise analysis for factor 6:
 # %%
-sP.run_gene_reg(rml, SP_FACT_PAT_STR.format(k=k), SP_GENE_PAT_STR.format(k=k), layer="counts", run_reg=False)
+ks_oi = [6]
+
+for k in ks_oi:
+    sP.run_gene_reg(rml, SP_FACT_PAT_STR.format(k=k), SP_GENE_PAT_STR.format(k=k), layer="counts", run_reg=False)
 # %%
-(
-    uapl.PlotAdata(rml)
-    + aes(
-        x=uapl.varm("X_nmf", k),
-        y=uapl.varm(SP_GENE_PAT_STR.format(k=k), "corr"),
-        label=np.where(
-            np.argsort(np.argsort(-np.abs(np.asarray(rml.varm[SP_GENE_PAT_STR.format(k=k)]["corr"])))) < 8,
-            rml.var["SYMBOL"],
-            None,  # ty:ignore[invalid-argument-type]
-        ),
-    )
-    + geom_point(size=1.5, shape="o", stroke=0)
-    + geom_label(adjust_text={}, na_rm=True)
-    + labs(
-        colour="-log(pval)",
-        x=f"NMF[{k}]",
-        y="pearson correlation",
-        title=f"NMF loading / p\u0302-gene correlation relationship for k={k}",
-    )
-).show()
+for k in ks_oi:
+    (
+        uapl.PlotAdata(rml)
+        + aes(
+            x=uapl.varm("X_nmf", k),
+            y=uapl.varm(SP_GENE_PAT_STR.format(k=k), "corr"),
+            label=np.where(
+                np.argsort(np.argsort(-np.abs(np.asarray(rml.varm[SP_GENE_PAT_STR.format(k=k)]["corr"])))) < 8,
+                rml.var["SYMBOL"],
+                None,  # ty:ignore[invalid-argument-type]
+            ),
+        )
+        + geom_point(size=1.5, shape="o", stroke=0)
+        + geom_label(adjust_text={}, na_rm=True)
+        + labs(
+            colour="-log(pval)",
+            x=f"NMF[{k}]",
+            y="pearson correlation",
+            title=f"NMF loading / p\u0302-gene correlation relationship for k={k}",
+        )
+    ).show()
 # %%
-degs = run_deg_groups(rml, k, "Condition", "Saline")
-sig_sub = degs.loc[lambda e: (e["adj_pval"] < 0.05) & (e["lfc"].abs() > 1)]
+degs = {k: run_deg_groups(rml, k, "Condition", "Saline") for k in ks_oi}
+sig_sub = {k: degs[k].loc[lambda e: (e["adj_pval"] < 0.05) & (e["lfc"].abs() > 1)] for k in ks_oi}
 
 # %%
-sig_counts = sig_sub.groupby("cmp", observed=True)["gene"].count()
-(
-    ggplot(sig_counts.reset_index(drop=False))
-    + aes(x="cmp", y="gene", fill=after_stat("y"), label=after_stat("y"))
-    + geom_col(color="black")
-    + geom_text(nudge_y=sig_counts.max() * 0.025)
-    + theme(axis_text_x=element_text(angle=45, hjust=1))
-    + guides(fill="none")
-    + labs(x="", y="# of DEGs (adj_pval < 0.05 & |lfc| > 1)", title=f"DEG counts for k={k}")
-).show()
+for k in ks_oi:
+    sig_counts = sig_sub[k].groupby("cmp", observed=True)["gene"].count()
+    (
+        ggplot(sig_counts.reset_index(drop=False))
+        + aes(x="cmp", y="gene", fill=after_stat("y"), label=after_stat("y"))
+        + geom_col(color="black")
+        + geom_text(nudge_y=sig_counts.max() * 0.025)
+        + theme(axis_text_x=element_text(angle=45, hjust=1))
+        + guides(fill="none")
+        + labs(x="", y="# of DEGs (adj_pval < 0.05 & |lfc| > 1)", title=f"DEG counts for k={k}")
+    ).show()
 
 # %% [markdown]
 # we can further visualize the permutations of gene set size in these comparisons via the upsetplot package:
 # %%
-with catch_warnings():
-    simplefilter(action="ignore", category=FutureWarning)
-    up.UpSet(
-        up.from_contents({g: v.array for g, v in sig_sub.groupby("cmp", observed=True)["gene"]}),
-        subset_size="count",
-        max_subset_rank=8,
-    ).plot()
+for k in ks_oi:
+    with catch_warnings():
+        simplefilter(action="ignore", category=FutureWarning)
+        up.UpSet(
+            up.from_contents({g: v.array for g, v in sig_sub[k].groupby("cmp", observed=True)["gene"]}),
+            subset_size="count",
+            max_subset_rank=8,
+        ).plot()
 
-plt.show()
+    plt.show()

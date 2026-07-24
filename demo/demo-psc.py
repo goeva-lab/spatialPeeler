@@ -27,7 +27,7 @@ import spatialpeeler as sP
 from spatialpeeler.diag import comp_sparsity, sweep_uns
 
 # %%
-viz_defs()
+viz_defs(dpi=128)
 RAND_SEED = 28
 # define helper function for plotting
 pl_help = partial(pl_k_sP, cond_col="group", sample_col="sample_id", ctl_val="CTL")
@@ -109,34 +109,24 @@ print(psc)
 # to explore the spatial properties of the resulting factor patterns, we can compute and plot
 # spatial statistics for each on a per sample basis (in this case Geary's C and Morans' I):
 # %%
-sp_stat_df = comp_spat_stats(psc, SP_FACT_PAT_STR, "sample_id")
+sp_stat_df, sp_stat_pl = comp_spat_stats(psc, SP_FACT_PAT_STR, "sample_id", "group", "CTL")
 # %%
-(
-    ggplot(sp_stat_df)
-    + aes(x="sample", y="factor(k)", fill="val")
-    + geom_tile()
-    + facet_wrap("stat", nrow=1)
-    + scale_y_discrete(limits=lambda e: list(reversed(e)))
-    + labs(x="", y="k", fill="")
-    + theme(axis_text_x=element_text(rotation=90))
-).show()
+(sp_stat_pl & theme(figure_size=(16, 9))).show()  # ty:ignore[unsupported-operator]
 
 # %% [markdown]
 # we can see that factor 4 has a strong case-specific profile (positive beta) and shows noticeable differences
 # between case and control in its spatial statistics, so we plot its distributions below:
 # %%
-for k in [4]:
-    for p in pl_help(psc, k).values():
-        p.show()
+for p in pl_help(psc, 4).values():
+    p.show()
 
 
 # %% [markdown]
 # we can see that factor 6 has a strong control-specific profile (negative beta) and shows noticeable differences
 # between case and control in its spatial statistics, so we plot its distributions below:
 # %%
-for k in [6]:
-    for p in pl_help(psc, k).values():
-        p.show()
+for p in pl_help(psc, 6).values():
+    p.show()
 
 
 # %% [markdown]

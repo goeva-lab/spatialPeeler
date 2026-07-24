@@ -5,6 +5,7 @@ import anndata as ad
 import numpy as np
 import pandas as pd
 import plotnine as p9
+import plotnine.composition
 import scanpy as sc
 import uapl
 from plotnine import theme_matplotlib, theme_set, theme_update
@@ -149,9 +150,9 @@ def psc_ds(pth: Path, filt_fn: Callable[[pd.DataFrame], pd.Series] | None = None
     }
 
 
-def viz_defs() -> None:
+def viz_defs(*args, **kwargs) -> None:
     theme_set(theme_matplotlib)
-    theme_update()
+    theme_update(*args, **kwargs)  # ty:ignore[invalid-argument-type, unused-ignore-comment, unused-ignore-comment]
 
 
 def pl_k_sP(
@@ -162,6 +163,7 @@ def pl_k_sP(
     ctl_val: str,
     fmt_str: str = "sP_p_hat_k={k}",
     spatial_obsm: str = "spatial",
+    sp_p_size: float = 1.0,
 ) -> Mapping[str, p9.ggplot]:
     obsm_sl_oi = fmt_str.format(k=k_oi)
     adata = adata[np.ravel(np.argsort(adata.obsm[obsm_sl_oi][sP.BIN_KEY])), :]
@@ -181,7 +183,7 @@ def pl_k_sP(
 
     sp_pl = [
         p9.aes(x=cent_sp("x"), y=cent_sp("y")),
-        p9.geom_point(shape="h", size=0.1),
+        p9.geom_point(shape="h", size=sp_p_size, stroke=0),
         p9.coord_fixed(),
         p9.theme(axis_text=p9.element_blank(), axis_ticks=p9.element_blank(), aspect_ratio=1),
         p9.labs(x="x", y="y"),
@@ -189,9 +191,7 @@ def pl_k_sP(
     vln_pl = (
         plo
         + p9.aes(y=uapl.obsm(obsm_sl_oi, sP.PAT_KEY))
-        + p9.geom_violin(
-            scale="count",
-        )
+        + p9.geom_violin(scale="count")
         + p9.geom_boxplot(width=0.1, outlier_shape="", position=p9.position_dodge(0.9), show_legend=False)
         + p9.labs(y="p\u0302", title=f"p\u0302 distributions for k={k_oi}", fill="")
         + p9.geom_hline(yintercept=p_hat_thresh, linetype="dashed", alpha=0.8, color="red")
@@ -201,18 +201,18 @@ def pl_k_sP(
 
     return {
         "spatial p-hat": sum(sp_pl, start=plo)
-        + p9.aes(color=uapl.obsm(obsm_sl_oi, sP.PAT_KEY))
-        + p9.scale_color_cmap("cividis")
-        + p9.labs(color="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi}")
+        + p9.aes(fill=uapl.obsm(obsm_sl_oi, sP.PAT_KEY))
+        + p9.scale_fill_cmap("cividis")
+        + p9.labs(fill="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi}")
         + p9.facet_wrap([uapl.obs(cond_col), uapl.obs(sample_col)], nrow=2, shrink=True),
         "spatial bin": sum(sp_pl, start=plo)
-        + p9.aes(color=uapl.obs(cond_col).fetch(adata) + np.where(uapl.obsm(obsm_sl_oi, sP.BIN_KEY).fetch(adata), "-1", "-0"))
-        + p9.labs(color="refined\nlabel", title=f"refined label spatial distributions for k={k_oi}")
+        + p9.aes(fill=uapl.obs(cond_col).fetch(adata) + np.where(uapl.obsm(obsm_sl_oi, sP.BIN_KEY).fetch(adata), "-1", "-0"))
+        + p9.labs(fill="refined\nlabel", title=f"refined label spatial distributions for k={k_oi}")
         + p9.facet_wrap([uapl.obs(cond_col), uapl.obs(sample_col)], nrow=2, shrink=True),
         "spatial p-hat (ctl/split)": sum(sp_pl, start=uapl.PlotAdata(adata[adata.obs[cond_col] == ctl_val]))
-        + p9.aes(color=uapl.obsm(obsm_sl_oi, sP.PAT_KEY))
-        + p9.scale_color_cmap("cividis")
-        + p9.labs(color="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi} for control cells (split by refinement)")
+        + p9.aes(fill=uapl.obsm(obsm_sl_oi, sP.PAT_KEY))
+        + p9.scale_fill_cmap("cividis")
+        + p9.labs(fill="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi} for control cells (split by refinement)")
         + p9.facet_grid(
             cols=uapl.obs(sample_col),
             rows=uapl.obsm(obsm_sl_oi, sP.BIN_KEY),
@@ -220,9 +220,9 @@ def pl_k_sP(
             shrink=True,
         ),
         "spatial p-hat (case/split)": sum(sp_pl, start=uapl.PlotAdata(adata[adata.obs[cond_col] != ctl_val]))
-        + p9.aes(color=uapl.obsm(obsm_sl_oi, sP.PAT_KEY))
-        + p9.scale_color_cmap("cividis")
-        + p9.labs(color="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi} for case cells (split by refinement)")
+        + p9.aes(fill=uapl.obsm(obsm_sl_oi, sP.PAT_KEY))
+        + p9.scale_fill_cmap("cividis")
+        + p9.labs(fill="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi} for case cells (split by refinement)")
         + p9.facet_grid(
             cols=uapl.obs(sample_col),
             rows=uapl.obsm(obsm_sl_oi, sP.BIN_KEY),
@@ -299,9 +299,11 @@ def run_deg_groups(adata: ad.AnnData, k_oi: int, cond_col: str, ctl_val: str, fm
     return deg_results
 
 
-def comp_spat_stats(adata: ad.AnnData, sP_key: str, sample_col: str) -> pd.DataFrame:
-    out = {"k": [], "stat": [], "sample": [], "val": []}
-    for sample, sub in adata.obs.groupby(sample_col, observed=True).indices.items():
+def comp_spat_stats(
+    adata: ad.AnnData, sP_key: str, sample_col: str, cond_col: str, ctl_val: str
+) -> tuple[pd.DataFrame, p9.ggplot | p9.composition.Compose]:
+    out = {"k": [], "stat": [], "sample": [], "is_case": [], "val": []}
+    for (sample, cond), sub in adata.obs.groupby([sample_col, cond_col], observed=True).indices.items():  # ty:ignore[not-iterable]
         sub = sc.pp.neighbors(adata[sub, :], use_rep="spatial", copy=True)
         for k in range(sub.obsm["X_nmf"].shape[1]):
             k_pat = sub.obsm[sP_key.format(k=k)][sP.PAT_KEY]
@@ -313,8 +315,42 @@ def comp_spat_stats(adata: ad.AnnData, sP_key: str, sample_col: str) -> pd.DataF
                 out["k"].append(k)
                 out["stat"].append(stat)
                 out["sample"].append(sample)
+                out["is_case"].append(cond != ctl_val)
 
                 na_filt = np.asarray(k_pat.notna())
                 out["val"].append(stat_fn(sub[na_filt, :], k_pat.loc[na_filt]))
 
-    return pd.DataFrame(out)
+    df = pd.DataFrame(out)
+    agg_df = (
+        df.groupby(["k", "stat", "is_case"])["val"]
+        .agg("mean")
+        .reset_index()
+        .pivot_table(index=["k", "stat"], values="val", columns="is_case")
+        .assign(diff=lambda e: e[True] - e[False])["diff"]
+        .reset_index()
+    )
+    df = df.merge(agg_df.sort_values("diff"), on=["k", "stat"])
+
+    pl = (
+        (
+            (
+                p9.ggplot(df)
+                + p9.aes(x="sample", y="reorder(k, diff.abs())", fill="val")
+                + p9.geom_tile()
+                + p9.labs(x="", y="k", fill="", title="per sample spatial statistic")
+                + p9.theme(axis_text_x=p9.element_text(angle=45, hjust=1))
+            )
+            | (
+                p9.ggplot(agg_df)
+                + p9.aes(y="diff", x="reorder(k, diff.abs())", fill="diff")
+                + p9.geom_col()
+                + p9.coord_flip()
+                + p9.labs(title="difference between means of case and ctl")
+                + p9.guides(fill="none")
+            )
+        )
+        & p9.labs(x="", y="k", fill="")
+        & p9.facet_wrap("stat", nrow=1)
+    )
+
+    return df, pl
