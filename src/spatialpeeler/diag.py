@@ -9,7 +9,6 @@ from typing import Any
 import anndata as ad
 import numpy as np
 import pandas as pd
-import plotnine as p9
 import uapl
 from scipy.sparse import sparray, spmatrix
 from scipy.stats import mannwhitneyu
@@ -124,10 +123,3 @@ def comp_sparsity(mtx, *args: np.ndarray | pd.Series, **kwargs) -> pd.DataFrame:
     df["column"] = pd.Categorical(df["column"])
 
     return df.groupby(["column", *gbys], observed=True).agg("mean").reset_index(drop=False)
-
-
-def geom_point_sp(size_in_px: int = 1, dpi: float = 300.0, *args, **kwargs) -> Any:
-    return [
-        p9.geom_point(*args, **kwargs, shape="s", stroke=0, size=(size_in_px * 72.0 / dpi) ** 2),
-        p9.coord_fixed(),
-    ]

@@ -1,18 +1,22 @@
 from collections.abc import Callable, Mapping
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import anndata as ad
 import numpy as np
 import pandas as pd
 import plotnine as p9
-import plotnine.composition
 import scanpy as sc
 import uapl
 from plotnine import theme_matplotlib, theme_set, theme_update
+from plotnine.composition import Compose
 from scipy.io import mmread
 from sklearn.decomposition import NMF
 
 import spatialpeeler as sP
+
+if TYPE_CHECKING:
+    from plotnine.ggplot import PlotAddable
 
 
 def run_proc_per_ds(adatas: Mapping[str, sc.AnnData]) -> None:
@@ -165,12 +169,12 @@ def pl_k_sP(
     spatial_obsm: str = "spatial",
     sp_p_size: float = 1.0,
 ) -> Mapping[str, p9.ggplot]:
-    obsm_sl_oi = fmt_str.format(k=k_oi)
-    adata = adata[np.ravel(np.argsort(adata.obsm[obsm_sl_oi][sP.BIN_KEY])), :]
+    key_oi = fmt_str.format(k=k_oi)
+    adata = adata[np.ravel(np.argsort(adata.obsm[key_oi][sP.BIN_KEY])), :]
     plo = uapl.PlotAdata(adata)
 
     p_hat_thresh = (
-        adata.obsm[obsm_sl_oi]
+        adata.obsm[key_oi]
         .groupby(  # ty:ignore[unresolved-attribute]
             sP.BIN_KEY
         )[sP.PAT_KEY]
@@ -179,9 +183,9 @@ def pl_k_sP(
         .iloc[[1, 2]]
         .mean()
     )
-    cent_sp = lambda c: p9.stage(uapl.obsm(spatial_obsm, c), after_stat=f"{c}-({c}.max() - {c}.min())/2")  # noqa: E731
+    cent_sp = lambda c: p9.stage(uapl.obsm(spatial_obsm, c), after_stat=f"{c}-({c}.max() - {c}.min())/2")
 
-    sp_pl = [
+    sp_pl: list[PlotAddable] = [
         p9.aes(x=cent_sp("x"), y=cent_sp("y")),
         p9.geom_point(shape="h", size=sp_p_size, stroke=0),
         p9.coord_fixed(),
@@ -190,7 +194,7 @@ def pl_k_sP(
     ]
     vln_pl = (
         plo
-        + p9.aes(y=uapl.obsm(obsm_sl_oi, sP.PAT_KEY))
+        + p9.aes(y=uapl.obsm(key_oi, sP.PAT_KEY))
         + p9.geom_violin(scale="count")
         + p9.geom_boxplot(width=0.1, outlier_shape="", position=p9.position_dodge(0.9), show_legend=False)
         + p9.labs(y="p\u0302", title=f"p\u0302 distributions for k={k_oi}", fill="")
@@ -198,39 +202,45 @@ def pl_k_sP(
         + p9.guides(color="none")
     )
     non_ctl_val = "/".join(adata.obs[cond_col].loc[lambda e: e != ctl_val].unique().tolist())
+    fill_after_stat, phat_lab = (None, "p\u0302") if adata.uns[key_oi]["beta"] > 0 else ("1-fill", "1-p\u0302")
 
     return {
-        "spatial p-hat": sum(sp_pl, start=plo)
-        + p9.aes(fill=uapl.obsm(obsm_sl_oi, sP.PAT_KEY))
+        "spatial p-hat": plo
+        + sp_pl
+        + p9.aes(fill=p9.stage(uapl.obsm(key_oi, sP.PAT_KEY), after_stat=fill_after_stat))
         + p9.scale_fill_cmap("cividis")
-        + p9.labs(fill="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi}")
+        + p9.labs(fill=phat_lab, title=f"p\u0302 spatial distributions for k={k_oi}")
         + p9.facet_wrap([uapl.obs(cond_col), uapl.obs(sample_col)], nrow=2, shrink=True),
-        "spatial bin": sum(sp_pl, start=plo)
-        + p9.aes(fill=uapl.obs(cond_col).fetch(adata) + np.where(uapl.obsm(obsm_sl_oi, sP.BIN_KEY).fetch(adata), "-1", "-0"))
+        "spatial bin": plo
+        + sp_pl
+        + p9.aes(fill=uapl.obs(cond_col).fetch(adata) + np.where(uapl.obsm(key_oi, sP.BIN_KEY).fetch(adata), "-1", "-0"))
         + p9.labs(fill="refined\nlabel", title=f"refined label spatial distributions for k={k_oi}")
-        + p9.facet_wrap([uapl.obs(cond_col), uapl.obs(sample_col)], nrow=2, shrink=True),
-        "spatial p-hat (ctl/split)": sum(sp_pl, start=uapl.PlotAdata(adata[adata.obs[cond_col] == ctl_val]))
-        + p9.aes(fill=uapl.obsm(obsm_sl_oi, sP.PAT_KEY))
+        + p9.facet_wrap([uapl.obs(cond_col), uapl.obs(sample_col)], nrow=2, shrink=True)
+        + p9.guides(fill=p9.guide_legend(override_aes={"size": 3})),
+        "spatial p-hat (ctl/split)": uapl.PlotAdata(adata[adata.obs[cond_col] == ctl_val])
+        + sp_pl
+        + p9.aes(fill=p9.stage(uapl.obsm(key_oi, sP.PAT_KEY), after_stat=fill_after_stat))
         + p9.scale_fill_cmap("cividis")
-        + p9.labs(fill="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi} for control cells (split by refinement)")
+        + p9.labs(fill=phat_lab, title=f"p\u0302 spatial distributions for k={k_oi} for control cells (split by refinement)")
         + p9.facet_grid(
             cols=uapl.obs(sample_col),
-            rows=uapl.obsm(obsm_sl_oi, sP.BIN_KEY),
+            rows=uapl.obsm(key_oi, sP.BIN_KEY),
             labeller=lambda e: {"False": f"{ctl_val}-0", "True": f"{ctl_val}-1"}.get(e, e),  # ty:ignore[invalid-argument-type]
             shrink=True,
         ),
-        "spatial p-hat (case/split)": sum(sp_pl, start=uapl.PlotAdata(adata[adata.obs[cond_col] != ctl_val]))
-        + p9.aes(fill=uapl.obsm(obsm_sl_oi, sP.PAT_KEY))
+        "spatial p-hat (case/split)": uapl.PlotAdata(adata[adata.obs[cond_col] != ctl_val])
+        + sp_pl
+        + p9.aes(fill=p9.stage(uapl.obsm(key_oi, sP.PAT_KEY), after_stat=fill_after_stat))
         + p9.scale_fill_cmap("cividis")
-        + p9.labs(fill="p\u0302", title=f"p\u0302 spatial distributions for k={k_oi} for case cells (split by refinement)")
+        + p9.labs(fill=phat_lab, title=f"p\u0302 spatial distributions for k={k_oi} for case cells (split by refinement)")
         + p9.facet_grid(
             cols=uapl.obs(sample_col),
-            rows=uapl.obsm(obsm_sl_oi, sP.BIN_KEY),
+            rows=uapl.obsm(key_oi, sP.BIN_KEY),
             labeller=lambda e: {"False": f"{non_ctl_val}-0", "True": f"{non_ctl_val}-1"}.get(e, e),  # ty:ignore[invalid-argument-type]
             shrink=True,
         ),
         "emb/p-hat": plo
-        + p9.aes(x=uapl.obsm(obsm_sl_oi, sP.peel.INP_KEY), y=uapl.obsm(obsm_sl_oi, sP.PAT_KEY), color=uapl.obs(cond_col))
+        + p9.aes(x=uapl.obsm(key_oi, sP.peel.INP_KEY), y=uapl.obsm(key_oi, sP.PAT_KEY), color=uapl.obs(cond_col))
         + p9.geom_point(alpha=1)
         + p9.facet_wrap(uapl.obs(cond_col))
         + p9.scale_x_continuous(expand=(0.1, 0))
@@ -242,58 +252,93 @@ def pl_k_sP(
         "group p-hat": vln_pl
         + p9.aes(
             x=uapl.obs(cond_col),
-            fill=np.where(
-                uapl.obsm(obsm_sl_oi, sP.BIN_KEY).fetch(adata) & (uapl.obs(cond_col).fetch(adata) != ctl_val), "1", "0"
-            ),
+            fill=np.where(uapl.obsm(key_oi, sP.BIN_KEY).fetch(adata) & (uapl.obs(cond_col).fetch(adata) != ctl_val), "1", "0"),
         )
-        + p9.scale_x_discrete(limits=lambda e: sorted(e, key=lambda x: (ctl_val not in x, x))),
+        + p9.scale_x_discrete(limits=lambda e: sorted(e, key=lambda x: (ctl_val not in x, x)))
+        + p9.scale_fill_discrete(direction=-1),
         "group p-hat (ctl split)": vln_pl
-        + p9.aes(x=uapl.obs(cond_col), fill=np.where(uapl.obsm(obsm_sl_oi, sP.BIN_KEY).fetch(adata), "1", "0"))
-        + p9.scale_x_discrete(limits=lambda e: sorted(e, key=lambda x: (ctl_val not in x, x))),
+        + p9.aes(x=uapl.obs(cond_col), fill=np.where(uapl.obsm(key_oi, sP.BIN_KEY).fetch(adata), "1", "0"))
+        + p9.scale_x_discrete(limits=lambda e: sorted(e, key=lambda x: (ctl_val not in x, x)))
+        + p9.scale_fill_discrete(direction=-1),
     }
 
 
 def run_deg_groups(adata: ad.AnnData, k_oi: int, cond_col: str, ctl_val: str, fmt_str: str = "sP_p_hat_k={k}") -> pd.DataFrame:
-    obsm_sl_oi = fmt_str.format(k=k_oi)
+    key_oi = fmt_str.format(k=k_oi)
     case_val = adata.obs[cond_col].loc[lambda e: e != ctl_val].unique().tolist()
     assert len(case_val) == 1, "cannot have more than one non control value for this to work"
     case_val = case_val[0]
 
-    deg_conf = {
-        "case_vs_control": ({uapl.obs(cond_col): case_val},),
-        #
-        "case1_vs_rest": ({uapl.obs(cond_col): case_val, uapl.obsm(obsm_sl_oi, sP.BIN_KEY): True},),
-        "case1_vs_control": (
-            {uapl.obs(cond_col): case_val, uapl.obsm(obsm_sl_oi, sP.BIN_KEY): True},
-            {uapl.obs(cond_col): ctl_val},
-        ),
-        "case1_vs_case0": (
-            {uapl.obs(cond_col): case_val, uapl.obsm(obsm_sl_oi, sP.BIN_KEY): True},
-            {uapl.obs(cond_col): case_val, uapl.obsm(obsm_sl_oi, sP.BIN_KEY): False},
-        ),
-        "case1_vs_control0": (
-            {uapl.obs(cond_col): case_val, uapl.obsm(obsm_sl_oi, sP.BIN_KEY): True},
-            {uapl.obs(cond_col): ctl_val, uapl.obsm(obsm_sl_oi, sP.BIN_KEY): False},
-        ),
-        #
-        "case0_vs_control": (
-            {uapl.obs(cond_col): case_val, uapl.obsm(obsm_sl_oi, sP.BIN_KEY): False},
-            {uapl.obs(cond_col): ctl_val},
-        ),
-        "case0_vs_control0": (
-            {uapl.obs(cond_col): case_val, uapl.obsm(obsm_sl_oi, sP.BIN_KEY): False},
-            {uapl.obs(cond_col): ctl_val, uapl.obsm(obsm_sl_oi, sP.BIN_KEY): False},
-        ),
-        #
-        "control1_vs_control0": (
-            {uapl.obs(cond_col): ctl_val, uapl.obsm(obsm_sl_oi, sP.BIN_KEY): True},
-            {uapl.obs(cond_col): ctl_val, uapl.obsm(obsm_sl_oi, sP.BIN_KEY): False},
-        ),
-    }
-
-    deg_results = pd.concat({k: sP.diag.run_deg_mwu(adata, *v) for k, v in deg_conf.items()}, names=["cmp"]).reset_index(
-        drop=False
+    deg_conf = (
+        {
+            "case_vs_control": ({uapl.obs(cond_col): case_val},),
+            "case1_vs_rest": ({uapl.obs(cond_col): case_val, uapl.obsm(key_oi, sP.BIN_KEY): True},),
+            "case1_vs_control": (
+                {uapl.obs(cond_col): case_val, uapl.obsm(key_oi, sP.BIN_KEY): True},
+                {uapl.obs(cond_col): ctl_val},
+            ),
+            "case1_vs_case0": (
+                {uapl.obs(cond_col): case_val, uapl.obsm(key_oi, sP.BIN_KEY): True},
+                {uapl.obs(cond_col): case_val, uapl.obsm(key_oi, sP.BIN_KEY): False},
+            ),
+            "case1_vs_control0": (
+                {uapl.obs(cond_col): case_val, uapl.obsm(key_oi, sP.BIN_KEY): True},
+                {uapl.obs(cond_col): ctl_val, uapl.obsm(key_oi, sP.BIN_KEY): False},
+            ),
+            "case0_vs_control": (
+                {uapl.obs(cond_col): case_val, uapl.obsm(key_oi, sP.BIN_KEY): False},
+                {uapl.obs(cond_col): ctl_val},
+            ),
+            "case0_vs_control0": (
+                {uapl.obs(cond_col): case_val, uapl.obsm(key_oi, sP.BIN_KEY): False},
+                {uapl.obs(cond_col): ctl_val, uapl.obsm(key_oi, sP.BIN_KEY): False},
+            ),
+            "control1_vs_control0": (
+                {uapl.obs(cond_col): ctl_val, uapl.obsm(key_oi, sP.BIN_KEY): True},
+                {uapl.obs(cond_col): ctl_val, uapl.obsm(key_oi, sP.BIN_KEY): False},
+            ),
+        }
+        if adata.uns[key_oi]["beta"] > 0
+        else {
+            "case_vs_control": ({uapl.obs(cond_col): case_val},),
+            "control0_vs_rest": ({uapl.obs(cond_col): ctl_val, uapl.obsm(key_oi, sP.BIN_KEY): False},),
+            "control0_vs_control1": (
+                {uapl.obs(cond_col): ctl_val, uapl.obsm(key_oi, sP.BIN_KEY): False},
+                {uapl.obs(cond_col): ctl_val, uapl.obsm(key_oi, sP.BIN_KEY): True},
+            ),
+            "control0_vs_case0": (
+                {uapl.obs(cond_col): ctl_val, uapl.obsm(key_oi, sP.BIN_KEY): False},
+                {uapl.obs(cond_col): case_val, uapl.obsm(key_oi, sP.BIN_KEY): False},
+            ),
+            "control0_vs_case": (
+                {uapl.obs(cond_col): ctl_val, uapl.obsm(key_oi, sP.BIN_KEY): False},
+                {uapl.obs(cond_col): case_val},
+            ),
+            "control0_vs_case1": (
+                {uapl.obs(cond_col): ctl_val, uapl.obsm(key_oi, sP.BIN_KEY): False},
+                {uapl.obs(cond_col): case_val, uapl.obsm(key_oi, sP.BIN_KEY): True},
+            ),
+            "control1_vs_case1": (
+                {uapl.obs(cond_col): ctl_val, uapl.obsm(key_oi, sP.BIN_KEY): True},
+                {uapl.obs(cond_col): case_val, uapl.obsm(key_oi, sP.BIN_KEY): True},
+            ),
+            "control1_vs_case": (
+                {uapl.obs(cond_col): ctl_val, uapl.obsm(key_oi, sP.BIN_KEY): True},
+                {uapl.obs(cond_col): case_val},
+            ),
+        }
     )
+
+    deg_results = pd.concat(
+        {
+            k: sP.diag.run_deg_mwu(adata, *v).assign(
+                # correct for the number of different comparisons being done
+                adj_pval=lambda e: e["adj_pval"] * len(deg_conf),
+            )
+            for k, v in deg_conf.items()
+        },
+        names=["cmp"],
+    ).reset_index(drop=False)
     deg_results["cmp"] = pd.Categorical(deg_results["cmp"], categories=deg_conf.keys(), ordered=True)
 
     return deg_results
@@ -301,7 +346,7 @@ def run_deg_groups(adata: ad.AnnData, k_oi: int, cond_col: str, ctl_val: str, fm
 
 def comp_spat_stats(
     adata: ad.AnnData, sP_key: str, sample_col: str, cond_col: str, ctl_val: str
-) -> tuple[pd.DataFrame, p9.ggplot | p9.composition.Compose]:
+) -> tuple[pd.DataFrame, p9.ggplot | Compose]:
     out = {"k": [], "stat": [], "sample": [], "is_case": [], "val": []}
     for (sample, cond), sub in adata.obs.groupby([sample_col, cond_col], observed=True).indices.items():  # ty:ignore[not-iterable]
         sub = sc.pp.neighbors(adata[sub, :], use_rep="spatial", copy=True)
@@ -345,11 +390,12 @@ def comp_spat_stats(
                 + p9.aes(y="diff", x="reorder(k, diff.abs())", fill="diff")
                 + p9.geom_col()
                 + p9.coord_flip()
+                + p9.scale_fill_cmap("turbo")
                 + p9.labs(title="difference between means of case and ctl")
                 + p9.guides(fill="none")
             )
         )
-        & p9.labs(x="", y="k", fill="")
+        & p9.labs(x="k", y="", fill="")
         & p9.facet_wrap("stat", nrow=1)
     )
 

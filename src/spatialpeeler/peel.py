@@ -45,7 +45,7 @@ def corr_feats(X: sp.csc_array, y: np.ndarray, w: np.ndarray | None = None) -> n
         w: jnp.ndarray = jnp.asarray(w)
         f = jit(lambda x: pearsonr_w(x, y, w))
 
-    return np.fromiter(map(lambda j: f(jnp.asarray(X[:, j].toarray())), range(0, X.shape[1])), dtype=float, count=X.shape[1])
+    return np.fromiter((f(jnp.asarray(X[:, j].toarray())) for j in range(X.shape[1])), dtype=float, count=X.shape[1])
 
 
 def fit_sm(X: np.ndarray, y: np.ndarray, with_intercept: bool, model: type[Model]) -> Results:
@@ -145,10 +145,6 @@ def run_fact_reg(
         "mse": np.sum(np.square(y - pat_vec)),
         "loss": np.sum(-(xlogy(y, pat_vec) + xlogy(1 - y, 1 - pat_vec))),
     }
-
-    # invert p-hat for negative beta values
-    if adata.uns[out_key]["beta"] < 0:
-        adata.obsm[out_key][PAT_KEY] = 1 - adata.obsm[out_key][PAT_KEY]
 
 
 def run_gene_reg(
