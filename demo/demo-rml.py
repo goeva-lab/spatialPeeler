@@ -84,7 +84,7 @@ X_spars = rml.X.nnz / np.prod(rml.X.shape)  # ty:ignore[unresolved-attribute]
     >> ggplot()
     + aes(x="density", y="column", color="cond")
     + geom_point()
-    + scale_y_discrete(limits=reversed)  # ty:ignore[invalid-argument-type]
+    + scale_y_discrete(limits=reversed)
     + labs(
         x="fraction of non-zero observations",
         y="NMF factor",

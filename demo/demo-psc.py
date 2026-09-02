@@ -6,7 +6,6 @@
 #     name: spatialpeeler
 # ---
 # %%
-# ruff: noqa: F405
 
 from _shared import pl_k_sP, psc_ds, run_deg_groups, run_nmf, run_proc_per_ds, viz_defs, comp_spat_stats  # isort:skip
 
@@ -21,7 +20,7 @@ import scanpy as sc
 import uapl
 import upsetplot as up
 from matplotlib import pyplot as plt
-from plotnine import *  # noqa: F403
+from plotnine import *
 
 import spatialpeeler as sP
 from spatialpeeler.diag import comp_sparsity, sweep_uns
@@ -75,7 +74,7 @@ X_spars = psc.X.nnz / np.prod(psc.X.shape)  # ty:ignore[unresolved-attribute]
     >> ggplot()
     + aes(x="density", y="column", color="cond")
     + geom_point()
-    + scale_y_discrete(limits=reversed)  # ty:ignore[invalid-argument-type]
+    + scale_y_discrete(limits=reversed)
     + labs(
         x="fraction of non-zero observations",
         y="NMF factor",
