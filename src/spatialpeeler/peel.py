@@ -48,12 +48,12 @@ def corr_feats(X: sp.csc_array, y: np.ndarray, w: np.ndarray | None = None) -> n
     return np.fromiter((f(jnp.asarray(X[:, j].toarray())) for j in range(X.shape[1])), dtype=float, count=X.shape[1])
 
 
-def fit_sm(X: np.ndarray, y: np.ndarray, with_intercept: bool, model: type[Model]) -> Results:
+def fit_sm(X: np.ndarray, y: np.ndarray, with_intercept: bool, model: type[Model], **kwargs) -> Results:
     if with_intercept:
         X = np.vstack([X, np.ones((X.shape[0],))]).T
     with catch_warnings():
         simplefilter(action="ignore", category=RuntimeWarning)
-        return model(y, X).fit(disp=False)  # ty:ignore[unknown-argument]
+        return model(y, X).fit(**({"disp": False} | kwargs))
 
 
 def run_bin(x: np.ndarray, init_mask: np.ndarray) -> np.ndarray:
@@ -78,6 +78,7 @@ def run_fact_reg(
     out_key: str,
     X_key: str = "X_nmf",
     filt: Callable[[sc.AnnData], sc.AnnData] | None = None,
+    fit_args: dict[str, object] | None = None,
 ) -> None:
     """
     runs the first step of the spatialPeeler process by:
@@ -102,31 +103,19 @@ def run_fact_reg(
             " (this function mutates its input directly)"
         )
 
+    if fit_args is None:
+        fit_args = {}
+
     if filt is None:
-        mod = fit_sm(
-            adata.obsm[X_key][:, k],
-            (adata.obs[y_key] != ctl_val).to_numpy(),
-            True,
-            sm.Logit,
-        )
+        mod = fit_sm(adata.obsm[X_key][:, k], (adata.obs[y_key] != ctl_val).to_numpy(), True, sm.Logit, **fit_args)
         y, pat_vec = mod.model.endog, mod.predict(mod.model.exog)
         adata.obsm[out_key] = pd.DataFrame(
-            {
-                "cell": adata.obs_names,
-                PAT_KEY: pat_vec,
-                BIN_KEY: run_bin(pat_vec, y),
-                INP_KEY: mod.model.exog[:, 0],
-            }
+            {"cell": adata.obs_names, PAT_KEY: pat_vec, BIN_KEY: run_bin(pat_vec, y), INP_KEY: mod.model.exog[:, 0]}
         ).set_index("cell")
     else:
         idx = adata.obs.index.get_indexer_for(filt(adata).obs.index)
         adata_s = adata[idx, :]
-        mod = fit_sm(
-            adata_s.obsm[X_key][:, k],
-            (adata_s.obs[y_key] != ctl_val).to_numpy(),
-            True,
-            sm.Logit,
-        )
+        mod = fit_sm(adata_s.obsm[X_key][:, k], (adata_s.obs[y_key] != ctl_val).to_numpy(), True, sm.Logit, **fit_args)
         y, pat_vec = mod.model.endog, mod.predict(mod.model.exog)
         # @TODO: find a better way to construct a SparseIndex (???)
         sp_index = type(pd.arrays.SparseArray([]).sp_index)(adata.n_obs, idx)  # ty:ignore[too-many-positional-arguments]
