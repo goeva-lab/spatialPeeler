@@ -171,7 +171,7 @@ def pl_k_sP(
 ) -> Mapping[str, p9.ggplot]:
     key_oi = fmt_str.format(k=k_oi)
     adata = adata[np.ravel(np.argsort(adata.obsm[key_oi][sP.BIN_KEY])), :]
-    plo = uapl.PlotAdata(adata)
+    plo = uapl.plotcells(adata)
 
     p_hat_thresh = (
         adata.obsm[key_oi]
@@ -217,7 +217,7 @@ def pl_k_sP(
         + p9.labs(fill="refined\nlabel", title=f"refined label spatial distributions for k={k_oi}")
         + p9.facet_wrap([uapl.obs(cond_col), uapl.obs(sample_col)], nrow=2, shrink=True)
         + p9.guides(fill=p9.guide_legend(override_aes={"size": 3})),
-        "spatial p-hat (ctl/split)": uapl.PlotAdata(adata[adata.obs[cond_col] == ctl_val])
+        "spatial p-hat (ctl/split)": uapl.plotcells(adata[adata.obs[cond_col] == ctl_val])
         + sp_pl
         + p9.aes(fill=p9.stage(uapl.obsm(key_oi, sP.PAT_KEY), after_stat=fill_after_stat))
         + p9.scale_fill_cmap("cividis")
@@ -228,7 +228,7 @@ def pl_k_sP(
             labeller=lambda e: {"False": f"{ctl_val}-0", "True": f"{ctl_val}-1"}.get(e, e),  # ty:ignore[invalid-argument-type]
             shrink=True,
         ),
-        "spatial p-hat (case/split)": uapl.PlotAdata(adata[adata.obs[cond_col] != ctl_val])
+        "spatial p-hat (case/split)": uapl.plotcells(adata[adata.obs[cond_col] != ctl_val])
         + sp_pl
         + p9.aes(fill=p9.stage(uapl.obsm(key_oi, sP.PAT_KEY), after_stat=fill_after_stat))
         + p9.scale_fill_cmap("cividis")

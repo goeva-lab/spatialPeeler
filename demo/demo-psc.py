@@ -137,7 +137,7 @@ for k in ks_oi:
 # %%
 for k in ks_oi:
     (
-        uapl.PlotAdata(psc)
+        uapl.plotfeats(psc)
         + aes(
             x=uapl.varm("X_nmf", k),
             y=uapl.varm(SP_GENE_PAT_STR.format(k=k), "corr"),

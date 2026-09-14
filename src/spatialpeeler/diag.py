@@ -14,13 +14,11 @@ from scipy.sparse import sparray, spmatrix
 from scipy.stats import mannwhitneyu
 
 
-def mk_mask(adata: ad.AnnData, items: Iterable[tuple[uapl.FetchBase, Any]]) -> np.ndarray:
+def mk_mask(adata: ad.AnnData, items: Iterable[tuple[uapl.pl.FetchObsWise, Any]]) -> np.ndarray:
     itr = iter(items)
     k, v = next(itr)
-    assert not k.by_var
     mask = k.fetch(adata) == v
     for k, v in itr:
-        assert not k.by_var
         mask &= k.fetch(adata) == v
 
     return mask
@@ -28,8 +26,8 @@ def mk_mask(adata: ad.AnnData, items: Iterable[tuple[uapl.FetchBase, Any]]) -> n
 
 def run_deg_mwu(
     adata: ad.AnnData,
-    g1: dict[uapl.FetchBase, Any],
-    g2: dict[uapl.FetchBase, Any] | None = None,
+    g1: dict[uapl.pl.FetchObsWise, Any],
+    g2: dict[uapl.pl.FetchObsWise, Any] | None = None,
     layer: str | None = None,
 ) -> pd.DataFrame:
     """

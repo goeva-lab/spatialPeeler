@@ -107,7 +107,7 @@ for k in range(rml.obsm["X_nmf"].shape[1]):
         k,
         SP_FACT_PAT_STR.format(k=k),
         X_key="X_nmf",
-        filt=lambda adata: adata[adata.obsm["X_nmf"][:, k] > 0, :],
+        filt=lambda adata: adata[adata.obsm["X_nmf"][:, k] > 0, :],  # noqa: B023
     )
 
 print(rml)
@@ -154,7 +154,7 @@ for k in ks_oi:
 # %%
 for k in ks_oi:
     (
-        uapl.PlotAdata(rml)
+        uapl.plotfeats(rml)
         + aes(
             x=uapl.varm("X_nmf", k),
             y=uapl.varm(SP_GENE_PAT_STR.format(k=k), "corr"),
