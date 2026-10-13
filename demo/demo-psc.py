@@ -6,8 +6,7 @@
 #     name: spatialpeeler
 # ---
 # %%
-
-from _shared import pl_k_sP, psc_ds, run_deg_groups, run_nmf, run_proc_per_ds, viz_defs, comp_spat_stats  # isort:skip
+from _shared import comp_sparsity, pl_k_sP, pl_spat_stats, psc_ds, run_deg_groups, run_nmf, run_proc_per_ds, viz_defs  # noqa: I001
 
 from functools import partial
 from pathlib import Path
@@ -23,7 +22,7 @@ from matplotlib import pyplot as plt
 from plotnine import *
 
 import spatialpeeler as sP
-from spatialpeeler.diag import comp_sparsity, sweep_uns
+from spatialpeeler.diag import comp_spat_stats, sweep_uns
 
 # %%
 viz_defs(dpi=128)
@@ -108,7 +107,9 @@ print(psc)
 # to explore the spatial properties of the resulting factor patterns, we can compute and plot
 # spatial statistics for each on a per sample basis (in this case Geary's C and Morans' I):
 # %%
-sp_stat_df, sp_stat_pl = comp_spat_stats(psc, SP_FACT_PAT_STR, "sample_id", "group", "CTL")
+sp_stat_df = comp_spat_stats(psc, SP_FACT_PAT_STR, "sample_id")
+sp_stat_pl = pl_spat_stats(sp_stat_df, psc.obs, "sample_id", "group", "CTL")
+
 # %%
 (sp_stat_pl & theme(figure_size=(16, 9))).show()  # ty:ignore[unsupported-operator]
 

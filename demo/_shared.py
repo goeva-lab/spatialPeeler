@@ -344,42 +344,53 @@ def run_deg_groups(adata: ad.AnnData, k_oi: int, cond_col: str, ctl_val: str, fm
     return deg_results
 
 
-def comp_spat_stats(
-    adata: ad.AnnData, sP_key: str, sample_col: str, cond_col: str, ctl_val: str
-) -> tuple[pd.DataFrame, p9.ggplot | Compose]:
-    out = {"k": [], "stat": [], "sample": [], "is_case": [], "val": []}
-    for (sample, cond), sub in adata.obs.groupby([sample_col, cond_col], observed=True).indices.items():  # ty:ignore[not-iterable]
-        sub = sc.pp.neighbors(adata[sub, :], use_rep="spatial", copy=True)
-        for k in range(sub.obsm["X_nmf"].shape[1]):
-            k_pat = sub.obsm[sP_key.format(k=k)][sP.PAT_KEY]
+def comp_sparsity(mtx, *args: np.ndarray | pd.Series, **kwargs) -> pd.DataFrame:
+    df = pd.DataFrame(mtx > 0)
+    gbys = []
+    for i, e in enumerate(args):
+        if isinstance(e, pd.Series):
+            k = e.name
+            df[k] = e.array
+        else:
+            k = f"gby_{i}"
+            df[k] = e
+        gbys.append(k)
+    for k, v in kwargs.items():
+        df[k] = v.array if isinstance(v, pd.Series) else e
+        gbys.append(str(k))
 
-            for stat, stat_fn in [
-                ("moran's i", sc.metrics.morans_i),
-                ("geary's c", sc.metrics.gearys_c),
-            ]:
-                out["k"].append(k)
-                out["stat"].append(stat)
-                out["sample"].append(sample)
-                out["is_case"].append(cond != ctl_val)
+    for k in gbys:
+        df[k] = pd.Categorical(df[k])
 
-                na_filt = np.asarray(k_pat.notna())
-                out["val"].append(stat_fn(sub[na_filt, :], k_pat.loc[na_filt]))
+    df = df.melt(id_vars=gbys, var_name="column", value_name="density")
+    df["column"] = pd.Categorical(df["column"])
 
-    df = pd.DataFrame(out)
+    return df.groupby(["column", *gbys], observed=True).agg("mean").reset_index(drop=False)
+
+
+def pl_spat_stats(
+    stat_df: pd.DataFrame, obs: pd.DataFrame, sample_col: str, cond_col: str, ctl_val: object
+) -> p9.ggplot | Compose:
+    stat_df = (
+        pd.DataFrame((s, g != ctl_val) for s, g in obs.groupby([sample_col, cond_col], observed=True).indices)  # ty: ignore[not-iterable]
+        .rename(columns={0: "sample", 1: "is_case"})
+        .merge(stat_df, on="sample")
+    )
+
     agg_df = (
-        df.groupby(["k", "stat", "is_case"])["val"]
+        stat_df.groupby(["k", "stat", "is_case"])["val"]
         .agg("mean")
         .reset_index()
         .pivot_table(index=["k", "stat"], values="val", columns="is_case")
         .assign(diff=lambda e: e[True] - e[False])["diff"]
         .reset_index()
     )
-    df = df.merge(agg_df.sort_values("diff"), on=["k", "stat"])
+    stat_df = stat_df.merge(agg_df.sort_values("diff"), on=["k", "stat"])
 
     pl = (
         (
             (
-                p9.ggplot(df)
+                p9.ggplot(stat_df)
                 + p9.aes(x="sample", y="reorder(k, diff.abs())", fill="val")
                 + p9.geom_tile()
                 + p9.labs(x="", y="k", fill="", title="per sample spatial statistic")
@@ -399,4 +410,4 @@ def comp_spat_stats(
         & p9.facet_wrap("stat", nrow=1)
     )
 
-    return df, pl
+    return pl

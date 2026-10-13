@@ -3,15 +3,18 @@ diagnostics-related utilties for spatialPeeler workflows
 """
 
 import re
-from collections.abc import Iterable, Sized
+from collections.abc import Callable, Iterable, Sized
 from typing import Any
 
 import anndata as ad
 import numpy as np
 import pandas as pd
+import scanpy as sc
 import uapl
 from scipy.sparse import sparray, spmatrix
 from scipy.stats import mannwhitneyu
+
+from .peel import PAT_KEY
 
 
 def mk_mask(adata: ad.AnnData, items: Iterable[tuple[uapl.pl.FetchObsWise, Any]]) -> np.ndarray:
@@ -79,6 +82,51 @@ def run_deg_mwu(
 CAPTURE_PAT = re.compile(r"\{(.+)\}")
 
 
+def comp_spat_stats(
+    adata: ad.AnnData,
+    sP_key: str | Callable[[int], str],
+    sample_col: str,
+    spatial_key: str = "spatial",
+    range_src: str | Iterable[int] = "X_nmf",
+) -> pd.DataFrame:
+    """
+    computes spatial statistics (Moran's I and Geary's C) for a given spatial view per sample, returning a DataFrame
+
+    :param adata: input object containing a spatial FOV of interest
+    :param sP_key: `.obsm` key pattern (with placeholder `k`) used for run_fact_reg output, or a function which given a factor index returns corresponding column name
+    :param sample_col: `.obs` key for sample column
+    :param spatial_key: `.obsm` key for spatial information
+    :param obsm_src: `.obsm` key for embedding used as `run_fact_reg` input or an iterator providing factor indices of interest
+    """
+    if isinstance(sP_key, str):
+        fmt_str = sP_key
+        sP_key = lambda k: fmt_str.format(k=k)
+
+    if isinstance(range_src, str):
+        k_range = range(adata.obsm[range_src].shape[1])
+    else:
+        k_range = [e for e in range_src]  # copy into list to avoid weird iterable behaviours
+
+    out = {"k": [], "stat": [], "sample": [], "val": []}
+    for sample, sub in adata.obs.groupby(sample_col, observed=True).indices.items():
+        sub = sc.pp.neighbors(adata[sub, :], use_rep=spatial_key, copy=True)
+        for k in k_range:
+            k_pat = sub.obsm[sP_key(k)][PAT_KEY]
+
+            for stat, stat_fn in [
+                ("moran's i", sc.metrics.morans_i),
+                ("geary's c", sc.metrics.gearys_c),
+            ]:
+                out["k"].append(k)
+                out["stat"].append(stat)
+                out["sample"].append(sample)
+
+                na_filt = np.asarray(k_pat.notna())
+                out["val"].append(stat_fn(sub[na_filt, :], k_pat.loc[na_filt]))
+
+    return pd.DataFrame(out)
+
+
 def sweep_uns(adata: ad.AnnData, uns_pat: str) -> pd.DataFrame:
     """
     collects all .uns values matching w/ keys matching a provided pattern into a single dataframe
@@ -97,27 +145,3 @@ def sweep_uns(adata: ad.AnnData, uns_pat: str) -> pd.DataFrame:
         ),
         ignore_index=True,
     )
-
-
-def comp_sparsity(mtx, *args: np.ndarray | pd.Series, **kwargs) -> pd.DataFrame:
-    df = pd.DataFrame(mtx > 0)
-    gbys = []
-    for i, e in enumerate(args):
-        if isinstance(e, pd.Series):
-            k = e.name
-            df[k] = e.array
-        else:
-            k = f"gby_{i}"
-            df[k] = e
-        gbys.append(k)
-    for k, v in kwargs.items():
-        df[k] = v.array if isinstance(v, pd.Series) else e
-        gbys.append(str(k))
-
-    for k in gbys:
-        df[k] = pd.Categorical(df[k])
-
-    df = df.melt(id_vars=gbys, var_name="column", value_name="density")
-    df["column"] = pd.Categorical(df["column"])
-
-    return df.groupby(["column", *gbys], observed=True).agg("mean").reset_index(drop=False)
