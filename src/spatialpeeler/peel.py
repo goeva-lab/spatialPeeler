@@ -1,9 +1,9 @@
 from collections.abc import Callable
 from warnings import catch_warnings, simplefilter
 
+import anndata as ad
 import numpy as np
 import pandas as pd
-import scanpy as sc
 from jax import jit
 from jax import numpy as jnp
 from scipy import sparse as sp
@@ -71,13 +71,13 @@ def run_bin(x: np.ndarray, init_mask: np.ndarray) -> np.ndarray:
 
 
 def run_fact_reg(
-    adata: sc.AnnData,
+    adata: ad.AnnData,
     y_key: str,
     ctl_val: object,
     k: int,
     out_key: str,
     X_key: str = "X_nmf",
-    filt: Callable[[sc.AnnData], sc.AnnData] | None = None,
+    filt: Callable[[ad.AnnData], ad.AnnData] | None = None,
     fit_args: dict[str, object] | None = None,
 ) -> None:
     """
@@ -137,7 +137,7 @@ def run_fact_reg(
 
 
 def run_gene_reg(
-    adata: sc.AnnData,
+    adata: ad.AnnData,
     sp_step1_key: str,
     out_key: str,
     run_reg: bool = True,
