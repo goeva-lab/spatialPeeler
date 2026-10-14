@@ -81,8 +81,9 @@ def run_fact_reg(
     fit_args: dict[str, object] | None = None,
 ) -> None:
     """
-    runs the first step of the spatialPeeler process by:
-    - logistic regression on condition labels w/ an embedding subspace + intercept as model inputs
+    executes the first step of the spatialPeeler pipeline by:
+
+    - running a logistic regression on condition labels w/ a one-dimensional embedding subspace + intercept as model inputs
     - adding per cell outputs to input ``.obsm`` slot
     - adding model coefficients, p-values, mean standard error, and cross-entropy loss values to input ``.uns`` slot
 
@@ -94,7 +95,7 @@ def run_fact_reg(
     :param X_key: adata ``.obsm`` key to fetch embeddings from, defaults to ``"X_nmf"``
     :param filt: optional callable to subset data prior to running step, defaults to ``None``
 
-    :raises ValueError: if input data is a view
+    :raises ValueError: if input ``adata`` is a view
     """
     if adata.is_view:
         raise ValueError(
@@ -146,16 +147,17 @@ def run_gene_reg(
 ) -> None:
     """
     runs the second step of the spatialPeeler process by:
-    - compute correlations between spatialPeeler outputs and gene expression
-    - compute regression-based (via OLS) differential expression analyses between spatialPeeler outputs and gene expression
+
+    - computing correlations between spatialPeeler outputs and gene expression
+    - computing regression-based (via OLS) differential expression analyses between spatialPeeler outputs and gene expression
     - adding resulting outputs to the input ``.varm`` slot
 
     :param adata: input data, already processed by :func:`run_fact_reg`, must not be a view, will be mutated
-    :param sp_step1_key: ``.obsm`` key used by :func:`run_fact_reg` to store its outputs
+    :param sp_step1_key: ``.obsm`` key used by :func:`run_gene_reg` to store its outputs
     :param out_key: ``.varm`` key used to store outputs
     :param layer: optional, layer to use to fetch gene counts instead of ``.X``, defaults to ``None``
 
-    :raises ValueError: if input adata is a view
+    :raises ValueError: if input ``adata`` is a view
     """
     assert sum([run_reg, run_corr]) > 0, "at least one form of analysis must be enabled"
     if adata.is_view:
@@ -196,7 +198,7 @@ def run_gene_reg(
             np.full((adata.n_vars,), np.nan),
         )
         for j in range(X.shape[1]):  # ty: ignore[unresolved-attribute]
-            gvec = X[:, j]  # ty: ignore[not-subscriptable]
+            gvec = X[:, j]  # ty: ignore[not-subscriptable, invalid-argument-type]
             if not isinstance(gvec, np.ndarray):
                 gvec = np.ravel(gvec.toarray())  # ty: ignore[unresolved-attribute]
 

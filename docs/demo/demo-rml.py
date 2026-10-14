@@ -5,16 +5,18 @@
 #     language: python
 #     name: spatialpeeler
 # ---
-# %%
-from _shared import comp_sparsity, pl_k_sP, pl_spat_stats, remyelin_ds, run_deg_groups, run_nmf, run_proc_per_ds, viz_defs  # noqa: I001
-
+# %% [markdown]
+# # analysis of remyelination data
+# %% [markdown]
+# we first import all script dependencies and load data into an {py:class}`~anndata.AnnData` object
+# %% tags=["hide-input"] mystnb={"code_prompt_show": "show preamble"}
 from functools import partial
 from pathlib import Path
-from pickle import dump, load
 from warnings import catch_warnings, simplefilter
 
 import anndata as ad
 import numpy as np
+import pandas as pd
 import scanpy as sc
 import uapl
 import upsetplot as up
@@ -24,7 +26,8 @@ from plotnine import *
 import spatialpeeler as sP
 from spatialpeeler.diag import comp_spat_stats, sweep_uns
 
-# %%
+from _shared import comp_sparsity, pl_k_sP, pl_spat_stats, remyelin_ds, run_deg_groups, run_nmf, run_proc_per_ds, viz_defs  # isort: skip
+
 viz_defs(dpi=128)
 RAND_SEED = 28
 # define helper function for plotting
@@ -32,14 +35,12 @@ pl_help = partial(pl_k_sP, cond_col="Condition", sample_col="puck_id", ctl_val="
 SP_FACT_PAT_STR = "sP_p_hat_k={k}"
 SP_GENE_PAT_STR = "sp_gene_id_k={k}"
 
-# %%
 # load dataset + run NMF
-if (pth := Path("../.cache/rml.pkl")).exists():
-    with open(pth, "rb") as f:
-        rml = load(f)
+if (pth := Path("../.cache/rml.h5ad")).exists():
+    rml = ad.read_h5ad(pth)
 else:
     adatas = remyelin_ds(
-        Path("../data/remyelin-slideseq"),
+        Path("../../data/remyelin-slideseq"),
         # load only subset of interest
         lambda obs: (
             (obs["GoodQuality"] == "Yes")
@@ -70,8 +71,9 @@ else:
     run_nmf(rml, 30, RAND_SEED)
 
     pth.parent.mkdir(exist_ok=True)
-    with open(pth, "wb") as f:
-        dump(rml, f)
+    rml.write_h5ad(pth)
+
+assert isinstance(rml.obs, pd.DataFrame)
 print(rml)
 
 # %% [markdown]
@@ -161,7 +163,7 @@ for k in ks_oi:
             label=np.where(
                 np.argsort(np.argsort(-np.abs(np.asarray(rml.varm[SP_GENE_PAT_STR.format(k=k)]["corr"])))) < 8,
                 rml.var["SYMBOL"],
-                None,  # ty:ignore[invalid-argument-type]
+                None,
             ),
         )
         + geom_point(size=1.5, shape="o", stroke=0)

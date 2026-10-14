@@ -3,26 +3,31 @@ name = "spatialpeeler"
 version = "0.1.0"
 dependencies = [
     "scanpy",
-    "plotnine",
     "numpy",
     "pandas",
     "scipy",
     "scikit-learn",
     "statsmodels",
     "jax",
-    "uapl@git+ssh://git@github.com/goeva-lab/uapl.git",
+    "uapl@git+https://git@github.com/goeva-lab/uapl.git",
 ]
 [project.optional-dependencies]
 dev = [
+    "sphinx",
+    "sphinx-autobuild",
+    "sphinx-autodoc-typehints",
+    "pydata-sphinx-theme",
+    "myst-nb",
+    "myst-parser",
+
     "jupytext",
     "ipykernel",
     "nbconvert",
     "ipywidgets",
+
+    "plotnine",
     "adjustText",
     "pybiomart",
     "upsetplot",
+    "pandas<3",
 ]
-
-[build-system]
-requires = ["uv_build<0.12"]
-build-backend = "uv_build"

@@ -16,6 +16,73 @@ from scipy.stats import mannwhitneyu
 
 from .peel import PAT_KEY
 
+CAPTURE_PAT = re.compile(r"\{(.+)\}")
+
+
+def sweep_uns(adata: ad.AnnData, uns_pat: str) -> pd.DataFrame:
+    """
+    collects all .uns values matching w/ keys matching a provided pattern
+
+    :param adata: input object w/ ``.uns`` slots matching pattern of interest
+    :param uns_pat: f-string like template providing pattern to match against
+    """
+    return pd.concat(
+        (
+            pd.DataFrame(
+                v,
+                index=range(len(vl) if isinstance(vl := next(iter(v.values())), Sized) else 1),
+            ).assign(**r.groupdict())
+            for k, v in adata.uns.items()
+            if (r := re.compile(CAPTURE_PAT.sub(r"(?P<\1>.*)", uns_pat)).search(k)) is not None
+        ),
+        ignore_index=True,
+    )
+
+
+def comp_spat_stats(
+    adata: ad.AnnData,
+    sP_key: str | Callable[[int], str],
+    sample_col: str,
+    spatial_key: str = "spatial",
+    range_src: str | Iterable[int] = "X_nmf",
+) -> pd.DataFrame:
+    """
+    computes spatial statistics (Moran's I and Geary's C) for a given spatial view per sample
+
+    :param adata: input object containing a spatial FOV of interest
+    :param sP_key: `.obsm` key pattern (with placeholder `k`) used for run_fact_reg output, or a function which given a factor index returns corresponding column name
+    :param sample_col: `.obs` key for sample column
+    :param spatial_key: `.obsm` key for spatial information
+    :param obsm_src: `.obsm` key for embedding used as `run_fact_reg` input or an iterator providing factor indices of interest
+    """
+    if isinstance(sP_key, str):
+        fmt_str = sP_key
+        sP_key = lambda k: fmt_str.format(k=k)
+
+    if isinstance(range_src, str):
+        k_range = range(adata.obsm[range_src].shape[1])
+    else:
+        k_range = [e for e in range_src]  # copy into list to avoid weird iterable behaviours
+
+    out = {"k": [], "stat": [], "sample": [], "val": []}
+    for sample, sub in adata.obs.groupby(sample_col, observed=True).indices.items():  # ty: ignore[unresolved-attribute]
+        sub = sc.pp.neighbors(adata[sub, :], use_rep=spatial_key, copy=True)
+        for k in k_range:
+            k_pat = sub.obsm[sP_key(k)][PAT_KEY]  # ty: ignore[unresolved-attribute]
+
+            for stat, stat_fn in [
+                ("moran's i", sc.metrics.morans_i),
+                ("geary's c", sc.metrics.gearys_c),
+            ]:
+                out["k"].append(k)
+                out["stat"].append(stat)
+                out["sample"].append(sample)
+
+                na_filt = np.asarray(k_pat.notna())  # ty: ignore[unresolved-attribute]
+                out["val"].append(stat_fn(sub[na_filt, :], k_pat.loc[na_filt]))  # ty: ignore[unresolved-attribute, not-subscriptable]
+
+    return pd.DataFrame(out)
+
 
 def mk_mask(adata: ad.AnnData, items: Iterable[tuple[uapl.pl.FetchObsWise, Any]]) -> np.ndarray:
     itr = iter(items)
@@ -34,10 +101,10 @@ def run_deg_mwu(
     layer: str | None = None,
 ) -> pd.DataFrame:
     """
-    runs mann-whitney-U-test-based DEG tests between a set of conditions, returning the results in a dataframe
+    runs mann-whitney-U-test based DEG analysis between a set of conditions
 
     :param adata: input anndata
-    :param g1: first condition, specified as a dictionary of source -> expected value bindings
+    :param g1: first condition, specified as a dictionary of source to expected value bindings
     :param g2: second condition, can be unspecified to compare against all remaining cells in the dataset
     :param layer: source layer to use to extract gene-wise information (if unset adata.X is used)
     """
@@ -67,81 +134,13 @@ def run_deg_mwu(
         batch_n = max(1, 125000000 // adata.n_obs)  # 125e6 ~= 1GB / 64bits, trying not to alloc more than a gig at a time
         for start in range(0, idx_arr.size, batch_n):
             slc = idx_arr[start : min(adata.n_vars, start + batch_n)]
-            lhs_i, rhs_i = lhs[:, slc].todense(), rhs[:, slc].todense()  # ty:ignore[unresolved-attribute, not-subscriptable]
+            lhs_i, rhs_i = lhs[:, slc].todense(), rhs[:, slc].todense()  # ty:ignore[unresolved-attribute, not-subscriptable, invalid-argument-type]
             pvals[slc] = mannwhitneyu(lhs_i, rhs_i).pvalue * adata.n_vars
             del lhs_i, rhs_i
     else:
-        pvals[mask] = mannwhitneyu(lhs[:, mask], rhs[:, mask]).pvalue * adata.n_vars  # ty:ignore[not-subscriptable]
+        pvals[mask] = mannwhitneyu(lhs[:, mask], rhs[:, mask]).pvalue * adata.n_vars  # ty:ignore[not-subscriptable, invalid-argument-type]
 
     lfc = np.full((adata.n_vars,), np.nan)
     lfc[mask] = np.log2(lhs_mean[mask] / rhs_mean[mask])
 
     return pd.DataFrame({"adj_pval": pvals, "lfc": lfc}, index=adata.var.index)
-
-
-CAPTURE_PAT = re.compile(r"\{(.+)\}")
-
-
-def comp_spat_stats(
-    adata: ad.AnnData,
-    sP_key: str | Callable[[int], str],
-    sample_col: str,
-    spatial_key: str = "spatial",
-    range_src: str | Iterable[int] = "X_nmf",
-) -> pd.DataFrame:
-    """
-    computes spatial statistics (Moran's I and Geary's C) for a given spatial view per sample, returning a DataFrame
-
-    :param adata: input object containing a spatial FOV of interest
-    :param sP_key: `.obsm` key pattern (with placeholder `k`) used for run_fact_reg output, or a function which given a factor index returns corresponding column name
-    :param sample_col: `.obs` key for sample column
-    :param spatial_key: `.obsm` key for spatial information
-    :param obsm_src: `.obsm` key for embedding used as `run_fact_reg` input or an iterator providing factor indices of interest
-    """
-    if isinstance(sP_key, str):
-        fmt_str = sP_key
-        sP_key = lambda k: fmt_str.format(k=k)
-
-    if isinstance(range_src, str):
-        k_range = range(adata.obsm[range_src].shape[1])
-    else:
-        k_range = [e for e in range_src]  # copy into list to avoid weird iterable behaviours
-
-    out = {"k": [], "stat": [], "sample": [], "val": []}
-    for sample, sub in adata.obs.groupby(sample_col, observed=True).indices.items():
-        sub = sc.pp.neighbors(adata[sub, :], use_rep=spatial_key, copy=True)
-        for k in k_range:
-            k_pat = sub.obsm[sP_key(k)][PAT_KEY]
-
-            for stat, stat_fn in [
-                ("moran's i", sc.metrics.morans_i),
-                ("geary's c", sc.metrics.gearys_c),
-            ]:
-                out["k"].append(k)
-                out["stat"].append(stat)
-                out["sample"].append(sample)
-
-                na_filt = np.asarray(k_pat.notna())
-                out["val"].append(stat_fn(sub[na_filt, :], k_pat.loc[na_filt]))
-
-    return pd.DataFrame(out)
-
-
-def sweep_uns(adata: ad.AnnData, uns_pat: str) -> pd.DataFrame:
-    """
-    collects all .uns values matching w/ keys matching a provided pattern into a single dataframe
-
-    :param adata:
-    :param uns_pat: f-string like template providing pattern to match against
-    """
-    return pd.concat(
-        (
-            pd.DataFrame(
-                v,
-                index=range(len(vl) if isinstance(vl := next(iter(v.values())), Sized) else 1),
-            ).assign(**r.groupdict())
-            for k, v in adata.uns.items()
-            if (r := re.compile(CAPTURE_PAT.sub(r"(?P<\1>.*)", uns_pat)).search(k)) is not None
-        ),
-        ignore_index=True,
-    )

@@ -5,3 +5,7 @@
 uv.lock
 
 .DS_Store
+
+docs/_build
+
+.pybiomart.sqlite

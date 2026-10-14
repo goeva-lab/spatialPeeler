@@ -6,6 +6,7 @@ import anndata as ad
 import numpy as np
 import pandas as pd
 import plotnine as p9
+import plotnine.options
 import scanpy as sc
 import uapl
 from plotnine import theme_matplotlib, theme_set, theme_update
@@ -106,7 +107,7 @@ def load_psc_ds(ds_path: Path, **kwargs) -> ad.AnnData:
 
     adata = ad.AnnData(
         mmread(ds_path / "matrix.mtx.gz", spmatrix=True).tocsc().T,
-        var=pd.read_csv(  # ty:ignore[no-matching-overload]
+        var=pd.read_csv(  # ty: ignore[no-matching-overload]
             ds_path / "features.tsv.gz",
             delimiter="\t",
             header=None,
@@ -121,7 +122,7 @@ def load_psc_ds(ds_path: Path, **kwargs) -> ad.AnnData:
         .loc[c_idx]
         .assign(in_tissue=lambda e: e["in_tissue"].astype(bool)),
         obsm={
-            "spatial": pd.read_csv(  # ty:ignore[no-matching-overload]
+            "spatial": pd.read_csv(  # ty: ignore[no-matching-overload]
                 ds_path / "tissue_positions_list.csv.gz",
                 delimiter=",",
                 header=None,
@@ -155,6 +156,8 @@ def psc_ds(pth: Path, filt_fn: Callable[[pd.DataFrame], pd.Series] | None = None
 
 
 def viz_defs(*args, **kwargs) -> None:
+
+    p9.options.set_option(name="figure_format", value="svg")
     theme_set(theme_matplotlib)
     theme_update(*args, **kwargs)  # ty:ignore[invalid-argument-type, unused-ignore-comment, unused-ignore-comment]
 

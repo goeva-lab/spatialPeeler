@@ -1,0 +1,57 @@
+on:
+  push:
+
+jobs:
+  lint_py:
+    runs-on: 'ubuntu-slim'
+    permissions:
+      contents: 'read'
+    steps:
+      - uses: 'actions/checkout@v7'
+      - uses: 'astral-sh/setup-uv@v10.3.0'
+      - run: |
+          set -euxo pipefail
+
+          uv venv -p '3.14'
+          uv pip install '.[dev]'
+
+          uv pip install --upgrade 'ruff'
+          ./.venv/bin/ruff check --output-format 'github'
+
+          uv pip install --upgrade 'ty'
+          ./.venv/bin/ty check --output-format 'github'
+  build_docs:
+    needs:
+      - 'lint_py'
+    runs-on: 'ubuntu-slim'
+    permissions:
+      contents: 'write'
+    steps:
+      - uses: 'actions/checkout@v7'
+      - uses: 'astral-sh/setup-uv@v10.3.0'
+      - run: |
+          set -euxo pipefail
+
+          uv venv -p '3.14'
+          uv pip install '.[dev]'
+          ./.venv/bin/python -m ipykernel install --user --name 'spatialPeeler'
+
+          # @TODO: look into using self-hosted runners depending on future hardware access
+          # `nb_execution_mode` set to off because runner does not have enough computational resources to render demos
+          ./.venv/bin/sphinx-build './docs' './dist' -D 'nb_execution_mode=off' -b 'dirhtml' -n
+
+          touch 'dist/.nojekyll'
+      - if: ${{ success() && format('refs/heads/{0}', github.event.repository.default_branch) == github.ref }}
+        run: |
+          set -euxo pipefail
+
+          git init -b 'gh-pages'
+          git add '.'
+          git config 'user.name' 'github-actions[bot]' && git config 'user.email' 'github-actions[bot]@users.noreply.github.com'
+          git commit -m 'publish: ${{ github.sha }}'
+          git push -f 'https://git:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git' 'gh-pages'
+        working-directory: './dist'
+      - uses: 'actions/upload-artifact@v7'
+        with:
+          name: 'sphinx documentation website archive'
+          path: 'dist/'
