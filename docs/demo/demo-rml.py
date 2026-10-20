@@ -58,6 +58,10 @@ else:
     rml = ad.concat(adatas, label="puck_id", index_unique="_")
     sc.pp.filter_genes(rml, min_cells=rml.n_obs // 500)
 
+    assert isinstance(rml.obsm["spatial"], pd.DataFrame)
+    # invert y-axis coordinates for plotting
+    rml.obsm["spatial"]["y"] = -rml.obsm["spatial"]["y"]
+
     rml.var["SYMBOL"] = (
         sc.queries.biomart_annotations("mmusculus", ["ensembl_gene_id", "external_gene_name"])
         .set_index("ensembl_gene_id")
