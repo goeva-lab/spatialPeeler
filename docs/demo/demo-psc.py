@@ -90,28 +90,22 @@ print(psc)
 
 # %% [markdown]
 # we now assess our resulting regression outputs distributions \
-# we can extract and collate the model betas and other statistics using the sweep_uns function
+# we can extract and collate the model betas and other statistics using the `sweep_uns` function,
+# and compute spatial statistics using the `comp_spat_stats` function.
+#
+# we can then use these outputs to plot the difference in mean Moran's I statistic between case and control samples
+# (with betas plotted on a symmetric log scale to improve resolution for small betas):
 # %%
+beta_df = sweep_uns(psc, SP_FACT_PAT_STR)
+beta_df["k"] = beta_df["k"].astype(int)
+sp_stat_df = comp_spat_stats(psc, SP_FACT_PAT_STR, "sample_id")
+
 (
-    sweep_uns(psc, SP_FACT_PAT_STR)
-    >> ggplot()
-    + aes(x="reorder(k, beta)", fill="-np.log(pval)", y="beta")
-    + geom_col(color="black")
-    + coord_flip()
-    + labs(fill="-log(pval)", x="NMF factor")
-    + scale_fill_cmap("turbo")
+    pl_spat_stats(beta_df, sp_stat_df[sp_stat_df["stat"] == "moran's i"], psc.obs, "sample_id", "group", "CTL")
     + scale_y_symlog()
+    + theme(aspect_ratio=2)
 ).show()
 
-# %% [markdown]
-# to explore the spatial properties of the resulting factor patterns, we can compute and plot
-# spatial statistics for each on a per sample basis (in this case Geary's C and Morans' I):
-# %%
-sp_stat_df = comp_spat_stats(psc, SP_FACT_PAT_STR, "sample_id")
-sp_stat_pl = pl_spat_stats(sp_stat_df, psc.obs, "sample_id", "group", "CTL")
-
-# %%
-(sp_stat_pl & theme(figure_size=(16, 9))).show()  # ty:ignore[unsupported-operator]
 
 # %% [markdown]
 # we can see that factor 4 has a strong case-specific profile (positive beta) and shows noticeable differences
@@ -175,7 +169,7 @@ for k in ks_oi:
     ).show()
 
 # %% [markdown]
-# we can further visualize the permutations of gene set size in these comparisons via the upsetplot package:
+# we can further visualize the permutations of gene set size in these comparisons via the `upsetplot` package:
 # %%
 for k in ks_oi:
     with catch_warnings():

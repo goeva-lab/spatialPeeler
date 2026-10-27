@@ -176,16 +176,6 @@ def pl_k_sP(
     adata = adata[np.ravel(np.argsort(adata.obsm[key_oi][sP.BIN_KEY])), :]
     plo = uapl.plotcells(adata)
 
-    p_hat_thresh = (
-        adata.obsm[key_oi]
-        .groupby(  # ty:ignore[unresolved-attribute]
-            sP.BIN_KEY
-        )[sP.PAT_KEY]
-        .agg(["min", "max"])
-        .melt()["value"]
-        .iloc[[1, 2]]
-        .mean()
-    )
     cent_sp = lambda c: p9.stage(uapl.obsm(spatial_obsm, c), after_stat=f"{c}-({c}.max() - {c}.min())/2")
 
     sp_pl: list[PlotAddable] = [
@@ -195,15 +185,6 @@ def pl_k_sP(
         p9.theme(axis_text=p9.element_blank(), axis_ticks=p9.element_blank(), aspect_ratio=1),
         p9.labs(x="x", y="y"),
     ]
-    vln_pl = (
-        plo
-        + p9.aes(y=uapl.obsm(key_oi, sP.PAT_KEY))
-        + p9.geom_violin(scale="count")
-        + p9.geom_boxplot(width=0.1, outlier_shape="", position=p9.position_dodge(0.9), show_legend=False)
-        + p9.labs(y="p\u0302", title=f"p\u0302 distributions for k={k_oi}", fill="")
-        + p9.geom_hline(yintercept=p_hat_thresh, linetype="dashed", alpha=0.8, color="red")
-        + p9.guides(color="none")
-    )
     non_ctl_val = "/".join(adata.obs[cond_col].loc[lambda e: e != ctl_val].unique().tolist())
     fill_after_stat, phat_lab = (None, "p\u0302") if adata.uns[key_oi]["beta"] > 0 else ("1-fill", "1-p\u0302")
 
@@ -242,27 +223,6 @@ def pl_k_sP(
             labeller=lambda e: {"False": f"{non_ctl_val}-0", "True": f"{non_ctl_val}-1"}.get(e, e),  # ty:ignore[invalid-argument-type]
             shrink=True,
         ),
-        "emb/p-hat": plo
-        + p9.aes(x=uapl.obsm(key_oi, sP.peel.INP_KEY), y=uapl.obsm(key_oi, sP.PAT_KEY), color=uapl.obs(cond_col))
-        + p9.geom_point(alpha=1)
-        + p9.facet_wrap(uapl.obs(cond_col))
-        + p9.scale_x_continuous(expand=(0.1, 0))
-        + p9.labs(x=f"embedding [k={k_oi}]", y="p\u0302", title=f"p\u0302 / embedding for k={k_oi}"),
-        "sample p-hat": vln_pl
-        + p9.aes(x=uapl.obs(sample_col))
-        + p9.scale_x_discrete(limits=lambda e: list(reversed(e)))
-        + p9.coord_flip(),
-        "group p-hat": vln_pl
-        + p9.aes(
-            x=uapl.obs(cond_col),
-            fill=np.where(uapl.obsm(key_oi, sP.BIN_KEY).fetch(adata) & (uapl.obs(cond_col).fetch(adata) != ctl_val), "1", "0"),
-        )
-        + p9.scale_x_discrete(limits=lambda e: sorted(e, key=lambda x: (ctl_val not in x, x)))
-        + p9.scale_fill_discrete(direction=-1),
-        "group p-hat (ctl split)": vln_pl
-        + p9.aes(x=uapl.obs(cond_col), fill=np.where(uapl.obsm(key_oi, sP.BIN_KEY).fetch(adata), "1", "0"))
-        + p9.scale_x_discrete(limits=lambda e: sorted(e, key=lambda x: (ctl_val not in x, x)))
-        + p9.scale_fill_discrete(direction=-1),
     }
 
 
@@ -371,46 +331,28 @@ def comp_sparsity(mtx, *args: np.ndarray | pd.Series, **kwargs) -> pd.DataFrame:
     return df.groupby(["column", *gbys], observed=True).agg("mean").reset_index(drop=False)
 
 
+# replace with bar plot of model betas, coloured by Moran's I difference between case/ctl
 def pl_spat_stats(
-    stat_df: pd.DataFrame, obs: pd.DataFrame, sample_col: str, cond_col: str, ctl_val: object
+    beta_df: pd.DataFrame, stat_df: pd.DataFrame, obs: pd.DataFrame, sample_col: str, cond_col: str, ctl_val: object
 ) -> p9.ggplot | Compose:
-    stat_df = (
+
+    return (
         pd.DataFrame((s, g != ctl_val) for s, g in obs.groupby([sample_col, cond_col], observed=True).indices)  # ty: ignore[not-iterable]
         .rename(columns={0: "sample", 1: "is_case"})
         .merge(stat_df, on="sample")
-    )
-
-    agg_df = (
-        stat_df.groupby(["k", "stat", "is_case"])["val"]
+        .groupby(["k", "stat", "is_case"])["val"]
         .agg("mean")
         .reset_index()
         .pivot_table(index=["k", "stat"], values="val", columns="is_case")
         .assign(diff=lambda e: e[True] - e[False])["diff"]
         .reset_index()
+        .sort_values("diff")
+        .merge(beta_df, on=["k"])
+        >> p9.ggplot()
+        + p9.aes(x="reorder(k, beta)", fill="diff", y="beta")
+        + p9.geom_col(color="black")
+        + p9.coord_flip()
+        + p9.labs(fill="ctrl/case spatial\nstat difference", x="NMF factor")
+        + p9.scale_fill_gradient2(low="purple", mid="white", high="green")
+        + p9.facet_wrap("stat", nrow=1)
     )
-    stat_df = stat_df.merge(agg_df.sort_values("diff"), on=["k", "stat"])
-
-    pl = (
-        (
-            (
-                p9.ggplot(stat_df)
-                + p9.aes(x="sample", y="reorder(k, diff.abs())", fill="val")
-                + p9.geom_tile()
-                + p9.labs(x="", y="k", fill="", title="per sample spatial statistic")
-                + p9.theme(axis_text_x=p9.element_text(angle=45, hjust=1))
-            )
-            | (
-                p9.ggplot(agg_df)
-                + p9.aes(y="diff", x="reorder(k, diff.abs())", fill="diff")
-                + p9.geom_col()
-                + p9.coord_flip()
-                + p9.scale_fill_cmap("turbo")
-                + p9.labs(title="difference between means of case and ctl")
-                + p9.guides(fill="none")
-            )
-        )
-        & p9.labs(x="k", y="", fill="")
-        & p9.facet_wrap("stat", nrow=1)
-    )
-
-    return pl
