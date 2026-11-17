@@ -1,16 +1,13 @@
 # spatialPeeler
 
-this package provides an implementation of the spatialPeeler method for discovery of condition specific gene programs in spatial -omics data.
-
-> [!IMPORTANT]
-> package is currently in a preview state, API is subject to breaking changes under 0ver, no releases cut so far, breaking changes are pushed to main
+this package provides an implementation of the `spatialPeeler` method for discovery of condition specific gene programs in spatial -omics data.
 
 ## installation
 
 [`uv`](https://docs.astral.sh/uv/getting-started/installation/) is used for package management, installation can be done via the following command:
 
 ```bash
-uv pip install 'git+ssh://git@github.com/goeva-lab/spatialPeeler.git'
+uv pip install 'git+https://github.com/goeva-lab/spatialPeeler.git'
 ```
 
 ## basics
