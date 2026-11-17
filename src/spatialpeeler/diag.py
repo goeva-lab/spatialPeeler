@@ -66,9 +66,10 @@ def comp_spat_stats(
 
     out = {"k": [], "stat": [], "sample": [], "val": []}
     for sample, sub in adata.obs.groupby(sample_col, observed=True).indices.items():  # ty: ignore[missing-union-attribute]
-        sub = sc.pp.neighbors(adata[sub, :], use_rep=spatial_key, copy=True)  # ty: ignore[invalid-argument-type]
+        sub = adata[sub, :].copy()
+        sc.pp.neighbors(sub, use=ad.acc.A.obsm[spatial_key])  # ty: ignore[invalid-argument-type]
         for k in k_range:
-            k_pat = sub.obsm[sP_key(k)][PAT_KEY]  # ty: ignore[missing-union-attribute]
+            k_pat = sub.obsm[sP_key(k)][PAT_KEY]
 
             for stat, stat_fn in [
                 ("moran's i", sc.metrics.morans_i),
@@ -79,7 +80,7 @@ def comp_spat_stats(
                 out["sample"].append(sample)
 
                 na_filt = np.asarray(k_pat.notna())  # ty: ignore[missing-union-attribute]
-                out["val"].append(stat_fn(sub[na_filt, :], k_pat.loc[na_filt]))  # ty: ignore[missing-union-attribute, not-subscriptable, invalid-argument-type]
+                out["val"].append(stat_fn(sub[na_filt, :], k_pat.loc[na_filt]))  # ty: ignore[missing-union-attribute]
 
     return pd.DataFrame(out)
 
