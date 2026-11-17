@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>analysis of remyelination data &#8212; spatialPeeler  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx_autodoc_typehints.css?v=057ac668" />
+    <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=d5bc78a3" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../_static/documentation_options.js?v=187304be"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'demo/demo-rml';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../genindex/" />
+    <link rel="search" title="Search" href="../../search/" />
+    <link rel="next" title="analysis of Primary Sclerosing Cholangitis (PSC) data" href="../demo-psc/" />
+    <link rel="prev" title="demonstrations" href="../" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search/"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">spatialPeeler  documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../">
+    demonstrations
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/goeva-lab/spatialPeeler" title="source repository" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">source repository</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../">
+    demonstrations
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/goeva-lab/spatialPeeler" title="source repository" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">source repository</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">analysis of remyelination data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demo-psc/">analysis of Primary Sclerosing Cholangitis (PSC) data</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../" class="nav-link">demonstrations</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">analysis of remyelination data</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="analysis-of-remyelination-data">
+<h1>analysis of remyelination data<a class="headerlink" href="#analysis-of-remyelination-data" title="Link to this heading">#</a></h1>
+<p>we first import all script dependencies and load data into an <a class="reference external" href="https://anndata.readthedocs.io/en/stable/generated/anndata.AnnData.html#anndata.AnnData" title="(in anndata v0.13.3.post0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">AnnData</span></code></a> object</p>
+<div class="cell tag_hide-input docutils container">
+<details class="admonition hide above-input">
+<summary aria-label="Toggle hidden content">
+<p class="collapsed admonition-title">show preamble</p>
+<p class="expanded admonition-title">hide</p>
+</summary>
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="kn">import</span> <span class="n">catch_warnings</span><span class="p">,</span> <span class="n">simplefilter</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">anndata</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ad</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">scanpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">uapl</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">upsetplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">up</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">plotnine</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">spatialpeeler</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sP</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spatialpeeler.diag</span><span class="w"> </span><span class="kn">import</span> <span class="n">comp_spat_stats</span><span class="p">,</span> <span class="n">sweep_uns</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">_shared</span><span class="w"> </span><span class="kn">import</span> <span class="n">comp_sparsity</span><span class="p">,</span> <span class="n">pl_k_sP</span><span class="p">,</span> <span class="n">pl_spat_stats</span><span class="p">,</span> <span class="n">remyelin_ds</span><span class="p">,</span> <span class="n">run_deg_groups</span><span class="p">,</span> <span class="n">run_nmf</span><span class="p">,</span> <span class="n">run_proc_per_ds</span><span class="p">,</span> <span class="n">viz_defs</span>  <span class="c1"># isort: skip</span>
+
+<span class="n">viz_defs</span><span class="p">(</span><span class="n">dpi</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
+<span class="n">RAND_SEED</span> <span class="o">=</span> <span class="mi">28</span>
+<span class="c1"># define helper function for plotting</span>
+<span class="n">pl_help</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">pl_k_sP</span><span class="p">,</span> <span class="n">cond_col</span><span class="o">=</span><span class="s2">"Condition"</span><span class="p">,</span> <span class="n">sample_col</span><span class="o">=</span><span class="s2">"puck_id"</span><span class="p">,</span> <span class="n">ctl_val</span><span class="o">=</span><span class="s2">"Saline"</span><span class="p">,</span> <span class="n">sp_p_size</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+<span class="n">SP_FACT_PAT_STR</span> <span class="o">=</span> <span class="s2">"sP_p_hat_k=</span><span class="si">{k}</span><span class="s2">"</span>
+<span class="n">SP_GENE_PAT_STR</span> <span class="o">=</span> <span class="s2">"sp_gene_id_k=</span><span class="si">{k}</span><span class="s2">"</span>
+
+<span class="c1"># load dataset + run NMF</span>
+<span class="k">if</span> <span class="p">(</span><span class="n">pth</span> <span class="o">:=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"../.cache/rml.h5ad"</span><span class="p">))</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+    <span class="n">rml</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">read_h5ad</span><span class="p">(</span><span class="n">pth</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">adatas</span> <span class="o">=</span> <span class="n">remyelin_ds</span><span class="p">(</span>
+        <span class="n">Path</span><span class="p">(</span><span class="s2">"../../data/remyelin-slideseq"</span><span class="p">),</span>
+        <span class="c1"># load only subset of interest</span>
+        <span class="k">lambda</span> <span class="n">obs</span><span class="p">:</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">obs</span><span class="p">[</span><span class="s2">"GoodQuality"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Yes"</span><span class="p">)</span>
+            <span class="o">&amp;</span> <span class="p">(</span>
+                <span class="p">((</span><span class="n">obs</span><span class="p">[</span><span class="s2">"Timepoint"</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="mi">3</span><span class="p">]))</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">obs</span><span class="p">[</span><span class="s2">"Condition"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"LPC"</span><span class="p">))</span>
+                <span class="o">|</span> <span class="p">(</span><span class="n">obs</span><span class="p">[</span><span class="s2">"Timepoint"</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="mi">12</span><span class="p">,</span> <span class="mi">18</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">obs</span><span class="p">[</span><span class="s2">"Condition"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Saline"</span><span class="p">))</span>
+            <span class="p">)</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">adatas</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">sc</span><span class="o">.</span><span class="n">pp</span><span class="o">.</span><span class="n">filter_cells</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">min_counts</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>  <span class="c1"># ty: ignore[too-many-positional-arguments]</span>
+
+    <span class="n">run_proc_per_ds</span><span class="p">(</span><span class="n">adatas</span><span class="p">)</span>
+
+    <span class="n">rml</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">adatas</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"puck_id"</span><span class="p">,</span> <span class="n">index_unique</span><span class="o">=</span><span class="s2">"_"</span><span class="p">)</span>
+    <span class="n">sc</span><span class="o">.</span><span class="n">pp</span><span class="o">.</span><span class="n">filter_genes</span><span class="p">(</span><span class="n">rml</span><span class="p">,</span> <span class="n">min_cells</span><span class="o">=</span><span class="n">rml</span><span class="o">.</span><span class="n">n_obs</span> <span class="o">//</span> <span class="mi">500</span><span class="p">)</span>  <span class="c1"># ty: ignore[too-many-positional-arguments]</span>
+
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rml</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="s2">"spatial"</span><span class="p">],</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span>
+    <span class="c1"># invert y-axis coordinates for plotting</span>
+    <span class="n">rml</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="s2">"spatial"</span><span class="p">][</span><span class="s2">"y"</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">rml</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="s2">"spatial"</span><span class="p">][</span><span class="s2">"y"</span><span class="p">]</span>
+
+    <span class="n">rml</span><span class="o">.</span><span class="n">var</span><span class="p">[</span><span class="s2">"SYMBOL"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">sc</span><span class="o">.</span><span class="n">queries</span><span class="o">.</span><span class="n">biomart_annotations</span><span class="p">(</span><span class="s2">"mmusculus"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"ensembl_gene_id"</span><span class="p">,</span> <span class="s2">"external_gene_name"</span><span class="p">])</span>
+        <span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"ensembl_gene_id"</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">rml</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">to_series</span><span class="p">(),</span> <span class="n">left_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">right_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"right"</span><span class="p">)[</span><span class="s2">"external_gene_name"</span><span class="p">]</span>
+        <span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">rml</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">to_series</span><span class="p">())</span>
+    <span class="p">)</span>
+
+    <span class="n">rml</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">"puck_id_cond"</span><span class="p">]</span> <span class="o">=</span> <span class="n">rml</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">"puck_id"</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">rml</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">"Condition"</span><span class="p">],</span> <span class="n">sep</span><span class="o">=</span><span class="s2">"_"</span><span class="p">)</span>
+    <span class="n">rml</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">"Condition"</span><span class="p">]</span> <span class="o">=</span> <span class="n">rml</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">"Condition"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"category"</span><span class="p">)</span><span class="o">.</span><span class="n">cat</span><span class="o">.</span><span class="n">reorder_categories</span><span class="p">([</span><span class="s2">"Saline"</span><span class="p">,</span> <span class="s2">"LPC"</span><span class="p">])</span>
+
+    <span class="n">run_nmf</span><span class="p">(</span><span class="n">rml</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="n">RAND_SEED</span><span class="p">)</span>
+
+    <span class="n">pth</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">rml</span><span class="o">.</span><span class="n">write_h5ad</span><span class="p">(</span><span class="n">pth</span><span class="p">)</span>
+
+<span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rml</span><span class="o">.</span><span class="n">obs</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">rml</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</details>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>AnnData object with n_obs × n_vars = 93450 × 12127
+    obs: 'Sample details', 'Animal', 'Timepoint', 'Condition', 'GoodQuality', 'n_counts', 'puck_id', 'puck_id_cond'
+    var: 'n_cells', 'SYMBOL'
+    obsm: 'X_nmf', 'spatial'
+    varm: 'X_nmf'
+    layers: 'counts', None (.X)
+</pre></div>
+</div>
+</div>
+</div>
+<p>before proceeding with spatialPeeler, we inspect our count matrix and NMF factors to assess their sparsity</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X_spars</span> <span class="o">=</span> <span class="n">rml</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">nnz</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">rml</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># ty: ignore[missing-union-attribute]</span>
+<span class="p">(</span>
+    <span class="n">comp_sparsity</span><span class="p">(</span><span class="n">rml</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="s2">"X_nmf"</span><span class="p">],</span> <span class="n">cond</span><span class="o">=</span><span class="n">rml</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">"Condition"</span><span class="p">])</span>
+    <span class="o">&gt;&gt;</span> <span class="n">ggplot</span><span class="p">()</span>
+    <span class="o">+</span> <span class="n">aes</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">"density"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"column"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"cond"</span><span class="p">)</span>
+    <span class="o">+</span> <span class="n">geom_point</span><span class="p">()</span>
+    <span class="o">+</span> <span class="n">scale_y_discrete</span><span class="p">(</span><span class="n">limits</span><span class="o">=</span><span class="nb">reversed</span><span class="p">)</span>
+    <span class="o">+</span> <span class="n">labs</span><span class="p">(</span>
+        <span class="n">x</span><span class="o">=</span><span class="s2">"fraction of non-zero observations"</span><span class="p">,</span>
+        <span class="n">y</span><span class="o">=</span><span class="s2">"NMF factor"</span><span class="p">,</span>
+        <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s2">"fraction of non-zero observations in count matrix: </span><span class="si">{</span><span class="n">X_spars</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">100</span><span class="si">:</span><span class="s2">.02f</span><span class="si">}</span><span class="s2">%"</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">)</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../../_images/f3775bf6fa890ff7051f3c7472f47ee00fc2362b8b85ae03fd6d144fc51962c8.svg" src="../../_images/f3775bf6fa890ff7051f3c7472f47ee00fc2362b8b85ae03fd6d144fc51962c8.svg" />
+</div>
+</div>
+<p>we see that the dataset is overall quite sparse (only ~1% of the data is non zero)
+and this is reflected in the factors, which are also mostly quite sparse <br />
+as such, we threshold our factor regression analysis to only include cells which are non-sparse for that factor</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># run factor-wise regression step</span>
+<span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rml</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="s2">"X_nmf"</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+    <span class="n">sP</span><span class="o">.</span><span class="n">run_fact_reg</span><span class="p">(</span>
+        <span class="n">rml</span><span class="p">,</span>
+        <span class="s2">"Condition"</span><span class="p">,</span>
+        <span class="s2">"Saline"</span><span class="p">,</span>
+        <span class="n">k</span><span class="p">,</span>
+        <span class="n">SP_FACT_PAT_STR</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">),</span>
+        <span class="n">X_key</span><span class="o">=</span><span class="s2">"X_nmf"</span><span class="p">,</span>
+        <span class="n">filt</span><span class="o">=</span><span class="k">lambda</span> <span class="n">adata</span><span class="p">:</span> <span class="n">adata</span><span class="p">[</span><span class="n">adata</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="s2">"X_nmf"</span><span class="p">][:,</span> <span class="n">k</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:],</span>  <span class="c1"># noqa: B023</span>
+    <span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">rml</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>AnnData object with n_obs × n_vars = 93450 × 12127
+    obs: 'Sample details', 'Animal', 'Timepoint', 'Condition', 'GoodQuality', 'n_counts', 'puck_id', 'puck_id_cond'
+    var: 'n_cells', 'SYMBOL'
+    uns: 'sP_p_hat_k=0', 'sP_p_hat_k=1', 'sP_p_hat_k=2', 'sP_p_hat_k=3', 'sP_p_hat_k=4', 'sP_p_hat_k=5', 'sP_p_hat_k=6', 'sP_p_hat_k=7', 'sP_p_hat_k=8', 'sP_p_hat_k=9', 'sP_p_hat_k=10', 'sP_p_hat_k=11', 'sP_p_hat_k=12', 'sP_p_hat_k=13', 'sP_p_hat_k=14', 'sP_p_hat_k=15', 'sP_p_hat_k=16', 'sP_p_hat_k=17', 'sP_p_hat_k=18', 'sP_p_hat_k=19', 'sP_p_hat_k=20', 'sP_p_hat_k=21', 'sP_p_hat_k=22', 'sP_p_hat_k=23', 'sP_p_hat_k=24', 'sP_p_hat_k=25', 'sP_p_hat_k=26', 'sP_p_hat_k=27', 'sP_p_hat_k=28', 'sP_p_hat_k=29'
+    obsm: 'X_nmf', 'spatial', 'sP_p_hat_k=0', 'sP_p_hat_k=1', 'sP_p_hat_k=2', 'sP_p_hat_k=3', 'sP_p_hat_k=4', 'sP_p_hat_k=5', 'sP_p_hat_k=6', 'sP_p_hat_k=7', 'sP_p_hat_k=8', 'sP_p_hat_k=9', 'sP_p_hat_k=10', 'sP_p_hat_k=11', 'sP_p_hat_k=12', 'sP_p_hat_k=13', 'sP_p_hat_k=14', 'sP_p_hat_k=15', 'sP_p_hat_k=16', 'sP_p_hat_k=17', 'sP_p_hat_k=18', 'sP_p_hat_k=19', 'sP_p_hat_k=20', 'sP_p_hat_k=21', 'sP_p_hat_k=22', 'sP_p_hat_k=23', 'sP_p_hat_k=24', 'sP_p_hat_k=25', 'sP_p_hat_k=26', 'sP_p_hat_k=27', 'sP_p_hat_k=28', 'sP_p_hat_k=29'
+    varm: 'X_nmf'
+    layers: 'counts', None (.X)
+</pre></div>
+</div>
+</div>
+</div>
+<p>we now assess our resulting regression outputs distributions <br />
+we can extract and collate the model betas and other statistics using the <code class="docutils literal notranslate"><span class="pre">sweep_uns</span></code> function,
+and compute spatial statistics using the <code class="docutils literal notranslate"><span class="pre">comp_spat_stats</span></code> function.</p>
+<p>we can then use these outputs to plot the difference in mean Moran’s I statistic between case and control samples:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">beta_df</span> <span class="o">=</span> <span class="n">sweep_uns</span><span class="p">(</span><span class="n">rml</span><span class="p">,</span> <span class="n">SP_FACT_PAT_STR</span><span class="p">)</span>
+<span class="n">beta_df</span><span class="p">[</span><span class="s2">"k"</span><span class="p">]</span> <span class="o">=</span> <span class="n">beta_df</span><span class="p">[</span><span class="s2">"k"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+<span class="n">sp_stat_df</span> <span class="o">=</span> <span class="n">comp_spat_stats</span><span class="p">(</span><span class="n">rml</span><span class="p">,</span> <span class="n">SP_FACT_PAT_STR</span><span class="p">,</span> <span class="s2">"puck_id"</span><span class="p">)</span>
+
+<span class="p">(</span>
+    <span class="n">pl_spat_stats</span><span class="p">(</span><span class="n">beta_df</span><span class="p">,</span> <span class="n">sp_stat_df</span><span class="p">[</span><span class="n">sp_stat_df</span><span class="p">[</span><span class="s2">"stat"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"moran's i"</span><span class="p">],</span> <span class="n">rml</span><span class="o">.</span><span class="n">obs</span><span class="p">,</span> <span class="s2">"puck_id"</span><span class="p">,</span> <span class="s2">"Condition"</span><span class="p">,</span> <span class="s2">"Saline"</span><span class="p">)</span>
+    <span class="o">+</span> <span class="n">theme</span><span class="p">(</span><span class="n">aspect_ratio</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="p">)</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../../_images/6a991da2e8ef6c75f7b32ff721a690f96a69bfdf1fd4472ff38469e1703bb6d8.svg" src="../../_images/6a991da2e8ef6c75f7b32ff721a690f96a69bfdf1fd4472ff38469e1703bb6d8.svg" />
+</div>
+</div>
+<p>we can see that factor 6 has a strong difference case-specific profile and shows interesting spatial properties
+between conditions as measured by Moran’s I statistic, so we plot it’s distributions below:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">k</span> <span class="o">=</span> <span class="mi">6</span>
+<span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pl_help</span><span class="p">(</span><span class="n">rml</span><span class="p">[</span><span class="n">rml</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="s2">"X_nmf"</span><span class="p">][:,</span> <span class="n">k</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../../_images/4a02a2766051d3bc5745bb75e582a09d4160651638296038f56e2eb503f7bf08.svg" src="../../_images/4a02a2766051d3bc5745bb75e582a09d4160651638296038f56e2eb503f7bf08.svg" />
+<img alt="../../_images/7dc5613225b565f07bd607730fe4d6000835be1a7070cc00a89c4eef1aac7ba9.svg" src="../../_images/7dc5613225b565f07bd607730fe4d6000835be1a7070cc00a89c4eef1aac7ba9.svg" />
+<img alt="../../_images/a8bebb7d4b44ba8a114f22d0f907a01fb0286ef0f09a971abb695f8e56131891.svg" src="../../_images/a8bebb7d4b44ba8a114f22d0f907a01fb0286ef0f09a971abb695f8e56131891.svg" />
+<img alt="../../_images/fdc2b2aa2f598c00eeac40b324afc812991e4da628f7e7db18d18840be0ee2c1.svg" src="../../_images/fdc2b2aa2f598c00eeac40b324afc812991e4da628f7e7db18d18840be0ee2c1.svg" />
+</div>
+</div>
+<p>to explore this further, we proceed w/ a gene-wise analysis for factor 6:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ks_oi</span> <span class="o">=</span> <span class="p">[</span><span class="mi">6</span><span class="p">]</span>
+
+<span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">ks_oi</span><span class="p">:</span>
+    <span class="n">sP</span><span class="o">.</span><span class="n">run_gene_reg</span><span class="p">(</span><span class="n">rml</span><span class="p">,</span> <span class="n">SP_FACT_PAT_STR</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">),</span> <span class="n">SP_GENE_PAT_STR</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">),</span> <span class="n">layer</span><span class="o">=</span><span class="s2">"counts"</span><span class="p">,</span> <span class="n">run_reg</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">ks_oi</span><span class="p">:</span>
+    <span class="p">(</span>
+        <span class="n">uapl</span><span class="o">.</span><span class="n">plotfeats</span><span class="p">(</span><span class="n">rml</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">aes</span><span class="p">(</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">uapl</span><span class="o">.</span><span class="n">varm</span><span class="p">(</span><span class="s2">"X_nmf"</span><span class="p">,</span> <span class="n">k</span><span class="p">),</span>
+            <span class="n">y</span><span class="o">=</span><span class="n">uapl</span><span class="o">.</span><span class="n">varm</span><span class="p">(</span><span class="n">SP_GENE_PAT_STR</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">),</span> <span class="s2">"corr"</span><span class="p">),</span>
+            <span class="n">label</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">rml</span><span class="o">.</span><span class="n">varm</span><span class="p">[</span><span class="n">SP_GENE_PAT_STR</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">)][</span><span class="s2">"corr"</span><span class="p">]))))</span> <span class="o">&lt;</span> <span class="mi">8</span><span class="p">,</span>
+                <span class="n">rml</span><span class="o">.</span><span class="n">var</span><span class="p">[</span><span class="s2">"SYMBOL"</span><span class="p">],</span>
+                <span class="kc">None</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="o">+</span> <span class="n">geom_point</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">"o"</span><span class="p">,</span> <span class="n">stroke</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">geom_label</span><span class="p">(</span><span class="n">adjust_text</span><span class="o">=</span><span class="p">{},</span> <span class="n">na_rm</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">labs</span><span class="p">(</span>
+            <span class="n">colour</span><span class="o">=</span><span class="s2">"-log(pval)"</span><span class="p">,</span>
+            <span class="n">x</span><span class="o">=</span><span class="sa">f</span><span class="s2">"NMF[</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">]"</span><span class="p">,</span>
+            <span class="n">y</span><span class="o">=</span><span class="s2">"pearson correlation"</span><span class="p">,</span>
+            <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s2">"NMF loading / p</span><span class="se">\u0302</span><span class="s2">-gene correlation relationship for k=</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../../_images/6c514f0c7fdd762784c5f48034aceff7c99cf6922a366fd770cc6f8d79cd0d6f.svg" src="../../_images/6c514f0c7fdd762784c5f48034aceff7c99cf6922a366fd770cc6f8d79cd0d6f.svg" />
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">degs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">run_deg_groups</span><span class="p">(</span><span class="n">rml</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="s2">"Condition"</span><span class="p">,</span> <span class="s2">"Saline"</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">ks_oi</span><span class="p">}</span>
+<span class="n">sig_sub</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">degs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s2">"adj_pval"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.05</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s2">"lfc"</span><span class="p">]</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">ks_oi</span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">ks_oi</span><span class="p">:</span>
+    <span class="n">sig_counts</span> <span class="o">=</span> <span class="n">sig_sub</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"cmp"</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="s2">"gene"</span><span class="p">]</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+    <span class="p">(</span>
+        <span class="n">ggplot</span><span class="p">(</span><span class="n">sig_counts</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+        <span class="o">+</span> <span class="n">aes</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">"cmp"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"gene"</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="n">after_stat</span><span class="p">(</span><span class="s2">"y"</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="n">after_stat</span><span class="p">(</span><span class="s2">"y"</span><span class="p">))</span>
+        <span class="o">+</span> <span class="n">geom_col</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">"black"</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">geom_text</span><span class="p">(</span><span class="n">nudge_y</span><span class="o">=</span><span class="n">sig_counts</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">*</span> <span class="mf">0.025</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">theme</span><span class="p">(</span><span class="n">axis_text_x</span><span class="o">=</span><span class="n">element_text</span><span class="p">(</span><span class="n">angle</span><span class="o">=</span><span class="mi">45</span><span class="p">,</span> <span class="n">hjust</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="o">+</span> <span class="n">guides</span><span class="p">(</span><span class="n">fill</span><span class="o">=</span><span class="s2">"none"</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">labs</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"# of DEGs (adj_pval &lt; 0.05 &amp; |lfc| &gt; 1)"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s2">"DEG counts for k=</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../../_images/65f56c644d1726d16dc15409967776018c305f6213d7f1fc0f1b3104c196951a.svg" src="../../_images/65f56c644d1726d16dc15409967776018c305f6213d7f1fc0f1b3104c196951a.svg" />
+</div>
+</div>
+<p>we can further visualize the permutations of gene set size in these comparisons via the upsetplot package:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">ks_oi</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">catch_warnings</span><span class="p">():</span>
+        <span class="n">simplefilter</span><span class="p">(</span><span class="n">action</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">FutureWarning</span><span class="p">)</span>
+        <span class="n">up</span><span class="o">.</span><span class="n">UpSet</span><span class="p">(</span>
+            <span class="n">up</span><span class="o">.</span><span class="n">from_contents</span><span class="p">({</span><span class="n">g</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">array</span> <span class="k">for</span> <span class="n">g</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">sig_sub</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"cmp"</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="s2">"gene"</span><span class="p">]}),</span>
+            <span class="n">subset_size</span><span class="o">=</span><span class="s2">"count"</span><span class="p">,</span>
+            <span class="n">max_subset_rank</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../../_images/b47fb7b65bcc2f541e1ef99ac3255a83ea9edfddfc5b56e15f4ce4af1516cb23.png" src="../../_images/b47fb7b65bcc2f541e1ef99ac3255a83ea9edfddfc5b56e15f4ce4af1516cb23.png" />
+</div>
+</div>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">demonstrations</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../demo-psc/"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">analysis of Primary Sclerosing Cholangitis (PSC) data</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../../_sources/demo/demo-rml.py.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, goeva lab.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

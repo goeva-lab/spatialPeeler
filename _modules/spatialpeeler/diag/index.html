@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>spatialpeeler.diag &#8212; spatialPeeler  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx_autodoc_typehints.css?v=057ac668" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=d5bc78a3" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../../_static/documentation_options.js?v=187304be"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/spatialpeeler/diag';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex/" />
+    <link rel="search" title="Search" href="../../../search/" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search/"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">spatialPeeler  documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../reference/">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../demo/">
+    demonstrations
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/goeva-lab/spatialPeeler" title="source repository" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">source repository</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../reference/">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../demo/">
+    demonstrations
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/goeva-lab/spatialPeeler" title="source repository" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">source repository</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">spatialpeeler.diag</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for spatialpeeler.diag</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""</span>
+<span class="sd">diagnostics-related utilties for spatialPeeler workflows</span>
+<span class="sd">"""</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Sized</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">anndata</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ad</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">scanpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">uapl</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">sparray</span><span class="p">,</span> <span class="n">spmatrix</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">mannwhitneyu</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.peel</span><span class="w"> </span><span class="kn">import</span> <span class="n">PAT_KEY</span>
+
+<span class="n">CAPTURE_PAT</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\{(.+)\}"</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="sweep_uns">
+<a class="viewcode-back" href="../../../reference/diag/#spatialpeeler.diag.sweep_uns">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sweep_uns</span><span class="p">(</span><span class="n">adata</span><span class="p">:</span> <span class="n">ad</span><span class="o">.</span><span class="n">AnnData</span><span class="p">,</span> <span class="n">uns_pat</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    collects all .uns values matching w/ keys matching a provided pattern</span>
+
+<span class="sd">    :param adata: input object w/ ``.uns`` slots matching pattern of interest</span>
+<span class="sd">    :param uns_pat: f-string like template providing pattern to match against</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+        <span class="p">(</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                <span class="n">v</span><span class="p">,</span>
+                <span class="n">index</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vl</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vl</span> <span class="o">:=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">values</span><span class="p">())),</span> <span class="n">Sized</span><span class="p">)</span> <span class="k">else</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="o">**</span><span class="n">r</span><span class="o">.</span><span class="n">groupdict</span><span class="p">())</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">adata</span><span class="o">.</span><span class="n">uns</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">r</span> <span class="o">:=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">CAPTURE_PAT</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">"(?P&lt;\1&gt;.*)"</span><span class="p">,</span> <span class="n">uns_pat</span><span class="p">))</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">k</span><span class="p">))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">),</span>
+        <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="comp_spat_stats">
+<a class="viewcode-back" href="../../../reference/diag/#spatialpeeler.diag.comp_spat_stats">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">comp_spat_stats</span><span class="p">(</span>
+    <span class="n">adata</span><span class="p">:</span> <span class="n">ad</span><span class="o">.</span><span class="n">AnnData</span><span class="p">,</span>
+    <span class="n">sP_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">str</span><span class="p">],</span>
+    <span class="n">sample_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">spatial_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"spatial"</span><span class="p">,</span>
+    <span class="n">range_src</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"X_nmf"</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    computes spatial statistics (Moran's I and Geary's C) for a given spatial view per sample</span>
+
+<span class="sd">    :param adata: input object containing a spatial FOV of interest</span>
+<span class="sd">    :param sP_key: `.obsm` key pattern (with placeholder `k`) used for run_fact_reg output, or a function which given a factor index returns corresponding column name</span>
+<span class="sd">    :param sample_col: `.obs` key for sample column</span>
+<span class="sd">    :param spatial_key: `.obsm` key for spatial information</span>
+<span class="sd">    :param obsm_src: `.obsm` key for embedding used as `run_fact_reg` input or an iterator providing factor indices of interest</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sP_key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">fmt_str</span> <span class="o">=</span> <span class="n">sP_key</span>
+        <span class="n">sP_key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">fmt_str</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">range_src</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">k_range</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">adata</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="n">range_src</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">k_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">range_src</span><span class="p">]</span>  <span class="c1"># copy into list to avoid weird iterable behaviours</span>
+
+    <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"k"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"stat"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"sample"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"val"</span><span class="p">:</span> <span class="p">[]}</span>
+    <span class="k">for</span> <span class="n">sample</span><span class="p">,</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">sample_col</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>  <span class="c1"># ty: ignore[missing-union-attribute]</span>
+        <span class="n">sub</span> <span class="o">=</span> <span class="n">adata</span><span class="p">[</span><span class="n">sub</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">sc</span><span class="o">.</span><span class="n">pp</span><span class="o">.</span><span class="n">neighbors</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">use</span><span class="o">=</span><span class="n">ad</span><span class="o">.</span><span class="n">acc</span><span class="o">.</span><span class="n">A</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="n">spatial_key</span><span class="p">])</span>  <span class="c1"># ty: ignore[invalid-argument-type]</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">k_range</span><span class="p">:</span>
+            <span class="n">k_pat</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="n">sP_key</span><span class="p">(</span><span class="n">k</span><span class="p">)][</span><span class="n">PAT_KEY</span><span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">stat</span><span class="p">,</span> <span class="n">stat_fn</span> <span class="ow">in</span> <span class="p">[</span>
+                <span class="p">(</span><span class="s2">"moran's i"</span><span class="p">,</span> <span class="n">sc</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">morans_i</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">"geary's c"</span><span class="p">,</span> <span class="n">sc</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">gearys_c</span><span class="p">),</span>
+            <span class="p">]:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s2">"k"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                <span class="n">out</span><span class="p">[</span><span class="s2">"stat"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stat</span><span class="p">)</span>
+                <span class="n">out</span><span class="p">[</span><span class="s2">"sample"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+
+                <span class="n">na_filt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">k_pat</span><span class="o">.</span><span class="n">notna</span><span class="p">())</span>  <span class="c1"># ty: ignore[missing-union-attribute]</span>
+                <span class="n">out</span><span class="p">[</span><span class="s2">"val"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stat_fn</span><span class="p">(</span><span class="n">sub</span><span class="p">[</span><span class="n">na_filt</span><span class="p">,</span> <span class="p">:],</span> <span class="n">k_pat</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">na_filt</span><span class="p">]))</span>  <span class="c1"># ty: ignore[missing-union-attribute]</span>
+
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">out</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">mk_mask</span><span class="p">(</span><span class="n">adata</span><span class="p">:</span> <span class="n">ad</span><span class="o">.</span><span class="n">AnnData</span><span class="p">,</span> <span class="n">items</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">uapl</span><span class="o">.</span><span class="n">pl</span><span class="o">.</span><span class="n">FetchObsWise</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="n">itr</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+    <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">itr</span><span class="p">)</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">adata</span><span class="p">)</span> <span class="o">==</span> <span class="n">v</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">itr</span><span class="p">:</span>
+        <span class="n">mask</span> <span class="o">&amp;=</span> <span class="n">k</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">adata</span><span class="p">)</span> <span class="o">==</span> <span class="n">v</span>
+
+    <span class="k">return</span> <span class="n">mask</span>
+
+
+<div class="viewcode-block" id="run_deg_mwu">
+<a class="viewcode-back" href="../../../reference/diag/#spatialpeeler.diag.run_deg_mwu">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_deg_mwu</span><span class="p">(</span>
+    <span class="n">adata</span><span class="p">:</span> <span class="n">ad</span><span class="o">.</span><span class="n">AnnData</span><span class="p">,</span>
+    <span class="n">g1</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">uapl</span><span class="o">.</span><span class="n">pl</span><span class="o">.</span><span class="n">FetchObsWise</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">g2</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">uapl</span><span class="o">.</span><span class="n">pl</span><span class="o">.</span><span class="n">FetchObsWise</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">layer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    runs mann-whitney-U-test based DEG analysis between a set of conditions</span>
+
+<span class="sd">    :param adata: input anndata</span>
+<span class="sd">    :param g1: first condition, specified as a dictionary of source to expected value bindings</span>
+<span class="sd">    :param g2: second condition, can be unspecified to compare against all remaining cells in the dataset</span>
+<span class="sd">    :param layer: source layer to use to extract gene-wise information (if unset adata.X is used)</span>
+<span class="sd">    """</span>
+
+    <span class="n">mtx</span> <span class="o">=</span> <span class="n">adata</span><span class="o">.</span><span class="n">X</span> <span class="k">if</span> <span class="n">layer</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">adata</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span>
+
+    <span class="n">lhs_mask</span> <span class="o">=</span> <span class="n">mk_mask</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">g1</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+    <span class="n">lhs</span> <span class="o">=</span> <span class="n">mtx</span><span class="p">[</span><span class="n">lhs_mask</span><span class="p">,</span> <span class="p">:]</span>  <span class="c1"># ty: ignore[not-subscriptable]</span>
+    <span class="n">rhs_mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">lhs_mask</span> <span class="k">if</span> <span class="n">g2</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">mk_mask</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">g2</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+    <span class="n">rhs</span> <span class="o">=</span> <span class="n">mtx</span><span class="p">[</span><span class="n">rhs_mask</span><span class="p">,</span> <span class="p">:]</span>  <span class="c1"># ty: ignore[not-subscriptable]</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lhs</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">lhs_mean</span><span class="p">,</span> <span class="n">rhs_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">lhs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">rhs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># ty: ignore[no-matching-overload]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lhs_mean</span><span class="p">,</span> <span class="n">rhs_mean</span> <span class="o">=</span> <span class="n">lhs</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">rhs</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># ty: ignore[missing-union-attribute]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lhs_mean</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">lhs_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">lhs_mean</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rhs_mean</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">rhs_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">rhs_mean</span><span class="p">)</span>
+
+    <span class="c1"># do not compute values where either lhs/rhs is all zeroes</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">lhs_mean</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">rhs_mean</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">pvals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">adata</span><span class="o">.</span><span class="n">n_vars</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mtx</span><span class="p">,</span> <span class="n">sparray</span> <span class="o">|</span> <span class="n">spmatrix</span><span class="p">):</span>
+        <span class="n">idx_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">adata</span><span class="o">.</span><span class="n">n_vars</span><span class="p">)[</span><span class="n">mask</span><span class="p">]</span>
+        <span class="n">batch_n</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">125000000</span> <span class="o">//</span> <span class="n">adata</span><span class="o">.</span><span class="n">n_obs</span><span class="p">)</span>  <span class="c1"># 125e6 ~= 1GB / 64bits, trying not to alloc more than a gig at a time</span>
+        <span class="k">for</span> <span class="n">start</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">idx_arr</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">batch_n</span><span class="p">):</span>
+            <span class="n">slc</span> <span class="o">=</span> <span class="n">idx_arr</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="nb">min</span><span class="p">(</span><span class="n">adata</span><span class="o">.</span><span class="n">n_vars</span><span class="p">,</span> <span class="n">start</span> <span class="o">+</span> <span class="n">batch_n</span><span class="p">)]</span>
+            <span class="n">lhs_i</span><span class="p">,</span> <span class="n">rhs_i</span> <span class="o">=</span> <span class="n">lhs</span><span class="p">[:,</span> <span class="n">slc</span><span class="p">]</span><span class="o">.</span><span class="n">todense</span><span class="p">(),</span> <span class="n">rhs</span><span class="p">[:,</span> <span class="n">slc</span><span class="p">]</span><span class="o">.</span><span class="n">todense</span><span class="p">()</span>  <span class="c1"># ty: ignore[missing-union-attribute, not-subscriptable, invalid-argument-type]</span>
+            <span class="n">pvals</span><span class="p">[</span><span class="n">slc</span><span class="p">]</span> <span class="o">=</span> <span class="n">mannwhitneyu</span><span class="p">(</span><span class="n">lhs_i</span><span class="p">,</span> <span class="n">rhs_i</span><span class="p">)</span><span class="o">.</span><span class="n">pvalue</span> <span class="o">*</span> <span class="n">adata</span><span class="o">.</span><span class="n">n_vars</span>
+            <span class="k">del</span> <span class="n">lhs_i</span><span class="p">,</span> <span class="n">rhs_i</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">pvals</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">mannwhitneyu</span><span class="p">(</span><span class="n">lhs</span><span class="p">[:,</span> <span class="n">mask</span><span class="p">],</span> <span class="n">rhs</span><span class="p">[:,</span> <span class="n">mask</span><span class="p">])</span><span class="o">.</span><span class="n">pvalue</span> <span class="o">*</span> <span class="n">adata</span><span class="o">.</span><span class="n">n_vars</span>  <span class="c1"># ty: ignore[not-subscriptable, invalid-argument-type]</span>
+
+    <span class="n">lfc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">adata</span><span class="o">.</span><span class="n">n_vars</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+    <span class="n">lfc</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">lhs_mean</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">/</span> <span class="n">rhs_mean</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"adj_pval"</span><span class="p">:</span> <span class="n">pvals</span><span class="p">,</span> <span class="s2">"lfc"</span><span class="p">:</span> <span class="n">lfc</span><span class="p">},</span> <span class="n">index</span><span class="o">=</span><span class="n">adata</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="n">index</span><span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, goeva lab.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
