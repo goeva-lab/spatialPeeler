@@ -47,7 +47,7 @@ else:
 
     psc = ad.concat(adatas, label="sample_id", index_unique="_")
 
-    sc.pp.filter_genes(psc, min_cells=psc.n_obs // 500)
+    sc.pp.filter_genes(psc, min_cells=psc.n_obs // 500)  # ty: ignore[too-many-positional-arguments]
 
     psc.var["SYMBOL"] = (
         sc.queries.biomart_annotations("hsapiens", ["ensembl_gene_id", "external_gene_name"], host="grch37.ensembl.org")
@@ -67,7 +67,7 @@ print(psc)
 # %% [markdown]
 # with our processed data, we proceed with the factor-wise regression step of spatialPeeler
 # %%
-X_spars = psc.X.nnz / np.prod(psc.X.shape)  # ty:ignore[unresolved-attribute]
+X_spars = psc.X.nnz / np.prod(psc.X.shape)  # ty: ignore[missing-union-attribute]
 (
     comp_sparsity(psc.obsm["X_nmf"], cond=psc.obs["group"])
     >> ggplot()

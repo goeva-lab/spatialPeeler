@@ -51,12 +51,12 @@ else:
         ),
     )
     for e in adatas.values():
-        sc.pp.filter_cells(e, min_counts=100)
+        sc.pp.filter_cells(e, min_counts=100)  # ty: ignore[too-many-positional-arguments]
 
     run_proc_per_ds(adatas)
 
     rml = ad.concat(adatas, label="puck_id", index_unique="_")
-    sc.pp.filter_genes(rml, min_cells=rml.n_obs // 500)
+    sc.pp.filter_genes(rml, min_cells=rml.n_obs // 500)  # ty: ignore[too-many-positional-arguments]
 
     assert isinstance(rml.obsm["spatial"], pd.DataFrame)
     # invert y-axis coordinates for plotting
@@ -83,7 +83,7 @@ print(rml)
 # %% [markdown]
 # before proceeding with spatialPeeler, we inspect our count matrix and NMF factors to assess their sparsity
 # %%
-X_spars = rml.X.nnz / np.prod(rml.X.shape)  # ty:ignore[unresolved-attribute]
+X_spars = rml.X.nnz / np.prod(rml.X.shape)  # ty: ignore[missing-union-attribute]
 (
     comp_sparsity(rml.obsm["X_nmf"], cond=rml.obs["Condition"])
     >> ggplot()

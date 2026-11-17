@@ -119,7 +119,7 @@ def run_fact_reg(
         mod = fit_sm(adata_s.obsm[X_key][:, k], (adata_s.obs[y_key] != ctl_val).to_numpy(), True, sm.Logit, **fit_args)
         y, pat_vec = mod.model.endog, mod.predict(mod.model.exog)
         # @TODO: find a better way to construct a SparseIndex (???)
-        sp_index = type(pd.arrays.SparseArray([]).sp_index)(adata.n_obs, idx)  # ty:ignore[too-many-positional-arguments]
+        sp_index = type(pd.arrays.SparseArray([]).sp_index)(adata.n_obs, idx)  # ty: ignore[too-many-positional-arguments]
         adata.obsm[out_key] = pd.DataFrame(
             {
                 "cell": adata.obs_names,
@@ -131,7 +131,7 @@ def run_fact_reg(
 
     adata.uns[out_key] = {
         "beta": mod.params[0],
-        "pval": mod.pvalues[0],  # ty:ignore[unresolved-attribute]
+        "pval": mod.pvalues[0],  # ty: ignore[missing-attribute]
         "mse": np.sum(np.square(y - pat_vec)),
         "loss": np.sum(-(xlogy(y, pat_vec) + xlogy(1 - y, 1 - pat_vec))),
     }
@@ -166,13 +166,13 @@ def run_gene_reg(
     X = adata.X if layer is None else adata.layers[layer]
 
     sp_out = adata.obsm[sp_step1_key]
-    w_vec = sp_out[INP_KEY].array  # ty:ignore[unresolved-attribute]
-    pat_vec = sp_out[PAT_KEY].array  # ty:ignore[unresolved-attribute]
+    w_vec = sp_out[INP_KEY].array  # ty: ignore[missing-union-attribute]
+    pat_vec = sp_out[PAT_KEY].array  # ty: ignore[missing-union-attribute]
 
     if isinstance(w_vec, pd.arrays.SparseArray):
         assert isinstance(pat_vec, pd.arrays.SparseArray)
         assert w_vec.sp_index is pat_vec.sp_index
-        X = X[w_vec.sp_index.indices, :]  # ty:ignore[not-subscriptable]
+        X = X[w_vec.sp_index.indices, :]  # ty: ignore[not-subscriptable]
         w_vec, pat_vec = w_vec.sp_values, pat_vec.sp_values
     else:
         w_vec, pat_vec = np.asarray(w_vec), np.asarray(pat_vec)
@@ -197,27 +197,27 @@ def run_gene_reg(
             np.full((adata.n_vars,), np.nan),
             np.full((adata.n_vars,), np.nan),
         )
-        for j in range(X.shape[1]):  # ty: ignore[unresolved-attribute]
+        for j in range(X.shape[1]):  # ty: ignore[missing-union-attribute]
             gvec = X[:, j]  # ty: ignore[not-subscriptable, invalid-argument-type]
             if not isinstance(gvec, np.ndarray):
-                gvec = np.ravel(gvec.toarray())  # ty: ignore[unresolved-attribute]
+                gvec = np.ravel(gvec.toarray())  # ty: ignore[missing-union-attribute]
 
             preg = fit_sm(pat_vec, gvec, True, sm.OLS)
             preg_arrs[0][j] = preg.params[0]
-            preg_arrs[1][j] = preg.pvalues[0] * adata.n_vars  # ty:ignore[unresolved-attribute]
+            preg_arrs[1][j] = preg.pvalues[0] * adata.n_vars  # ty: ignore[missing-attribute]
             with catch_warnings():
                 simplefilter(action="ignore", category=RuntimeWarning)
-                preg_arrs[2][j] = preg.rsquared  # ty:ignore[unresolved-attribute]
+                preg_arrs[2][j] = preg.rsquared  # ty: ignore[missing-attribute]
 
             z_gvec = zscore(gvec)
             z_index = np.nonzero(np.isfinite(z_gvec))[0]
             if z_index.size > 0:
                 zpreg = fit_sm(z_pat_vec, z_gvec, True, sm.OLS)
                 zpreg_arrs[0][j] = zpreg.params[0]
-                zpreg_arrs[1][j] = zpreg.pvalues[0] * adata.n_vars  # ty:ignore[unresolved-attribute]
+                zpreg_arrs[1][j] = zpreg.pvalues[0] * adata.n_vars  # ty: ignore[missing-attribute]
                 with catch_warnings():
                     simplefilter(action="ignore", category=RuntimeWarning)
-                    zpreg_arrs[2][j] = zpreg.rsquared  # ty:ignore[unresolved-attribute]
+                    zpreg_arrs[2][j] = zpreg.rsquared  # ty: ignore[missing-attribute]
         out |= dict(zip((f"reg_{e}" for e in out_keys), preg_arrs))
         out |= dict(zip((f"zreg_{e}" for e in out_keys), zpreg_arrs))
 

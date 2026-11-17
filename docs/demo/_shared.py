@@ -24,7 +24,7 @@ def run_proc_per_ds(adatas: Mapping[str, sc.AnnData]) -> None:
     # scale by sample
     for adata in adatas.values():
         adata.raw = adata
-        adata.layers["counts"] = adata.X  # ty:ignore[invalid-assignment]
+        adata.layers["counts"] = adata.X  # ty: ignore[invalid-assignment]
         sc.pp.scale(adata, zero_center=False)
 
 
@@ -209,7 +209,7 @@ def pl_k_sP(
         + p9.facet_grid(
             cols=uapl.obs(sample_col),
             rows=uapl.obsm(key_oi, sP.BIN_KEY),
-            labeller=lambda e: {"False": f"{ctl_val}-0", "True": f"{ctl_val}-1"}.get(e, e),  # ty:ignore[invalid-argument-type]
+            labeller=lambda e: {"False": f"{ctl_val}-0", "True": f"{ctl_val}-1"}.get(e, e),  # ty: ignore[invalid-argument-type]
             shrink=True,
         ),
         "spatial p-hat (case/split)": uapl.plotcells(adata[adata.obs[cond_col] != ctl_val])
@@ -220,7 +220,7 @@ def pl_k_sP(
         + p9.facet_grid(
             cols=uapl.obs(sample_col),
             rows=uapl.obsm(key_oi, sP.BIN_KEY),
-            labeller=lambda e: {"False": f"{non_ctl_val}-0", "True": f"{non_ctl_val}-1"}.get(e, e),  # ty:ignore[invalid-argument-type]
+            labeller=lambda e: {"False": f"{non_ctl_val}-0", "True": f"{non_ctl_val}-1"}.get(e, e),  # ty: ignore[invalid-argument-type]
             shrink=True,
         ),
     }
@@ -336,23 +336,14 @@ def pl_spat_stats(
     beta_df: pd.DataFrame, stat_df: pd.DataFrame, obs: pd.DataFrame, sample_col: str, cond_col: str, ctl_val: object
 ) -> p9.ggplot | Compose:
 
-    return (
-        pd.DataFrame((s, g != ctl_val) for s, g in obs.groupby([sample_col, cond_col], observed=True).indices)  # ty: ignore[not-iterable]
-        .rename(columns={0: "sample", 1: "is_case"})
-        .merge(stat_df, on="sample")
-        .groupby(["k", "stat", "is_case"])["val"]
-        .agg("mean")
-        .reset_index()
-        .pivot_table(index=["k", "stat"], values="val", columns="is_case")
-        .assign(diff=lambda e: e[True] - e[False])["diff"]
-        .reset_index()
-        .sort_values("diff")
-        .merge(beta_df, on=["k"])
-        >> p9.ggplot()
-        + p9.aes(x="reorder(k, beta)", fill="diff", y="beta")
-        + p9.geom_col(color="black")
-        + p9.coord_flip()
-        + p9.labs(fill="ctrl/case spatial\nstat difference", x="NMF factor")
-        + p9.scale_fill_gradient2(low="purple", mid="white", high="green")
-        + p9.facet_wrap("stat", nrow=1)
-    )
+    return pd.DataFrame((s, g != ctl_val) for s, g in obs.groupby([sample_col, cond_col], observed=True).indices).rename(  # ty: ignore[not-iterable]
+        columns={0: "sample", 1: "is_case"}
+    ).merge(stat_df, on="sample").groupby(["k", "stat", "is_case"])["val"].agg("mean").reset_index().pivot_table(
+        index=["k", "stat"], values="val", columns="is_case"
+    ).assign(diff=lambda e: e[True] - e[False])["diff"].reset_index().sort_values("diff").merge(
+        beta_df, on=["k"]
+    ) >> p9.ggplot() + p9.aes(x="reorder(k, beta)", fill="diff", y="beta") + p9.geom_col(
+        color="black"
+    ) + p9.coord_flip() + p9.labs(fill="ctrl/case spatial\nstat difference", x="NMF factor") + p9.scale_fill_gradient2(
+        low="purple", mid="white", high="green"
+    ) + p9.facet_wrap("stat", nrow=1)

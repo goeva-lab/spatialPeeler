@@ -65,10 +65,10 @@ def comp_spat_stats(
         k_range = [e for e in range_src]  # copy into list to avoid weird iterable behaviours
 
     out = {"k": [], "stat": [], "sample": [], "val": []}
-    for sample, sub in adata.obs.groupby(sample_col, observed=True).indices.items():  # ty: ignore[unresolved-attribute]
-        sub = sc.pp.neighbors(adata[sub, :], use_rep=spatial_key, copy=True)
+    for sample, sub in adata.obs.groupby(sample_col, observed=True).indices.items():  # ty: ignore[missing-union-attribute]
+        sub = sc.pp.neighbors(adata[sub, :], use_rep=spatial_key, copy=True)  # ty: ignore[invalid-argument-type]
         for k in k_range:
-            k_pat = sub.obsm[sP_key(k)][PAT_KEY]  # ty: ignore[unresolved-attribute]
+            k_pat = sub.obsm[sP_key(k)][PAT_KEY]  # ty: ignore[missing-union-attribute]
 
             for stat, stat_fn in [
                 ("moran's i", sc.metrics.morans_i),
@@ -78,8 +78,8 @@ def comp_spat_stats(
                 out["stat"].append(stat)
                 out["sample"].append(sample)
 
-                na_filt = np.asarray(k_pat.notna())  # ty: ignore[unresolved-attribute]
-                out["val"].append(stat_fn(sub[na_filt, :], k_pat.loc[na_filt]))  # ty: ignore[unresolved-attribute, not-subscriptable]
+                na_filt = np.asarray(k_pat.notna())  # ty: ignore[missing-union-attribute]
+                out["val"].append(stat_fn(sub[na_filt, :], k_pat.loc[na_filt]))  # ty: ignore[missing-union-attribute, not-subscriptable, invalid-argument-type]
 
     return pd.DataFrame(out)
 
@@ -112,14 +112,14 @@ def run_deg_mwu(
     mtx = adata.X if layer is None else adata.layers[layer]
 
     lhs_mask = mk_mask(adata, g1.items())
-    lhs = mtx[lhs_mask, :]  # ty:ignore[not-subscriptable]
+    lhs = mtx[lhs_mask, :]  # ty: ignore[not-subscriptable]
     rhs_mask = ~lhs_mask if g2 is None else mk_mask(adata, g2.items())
-    rhs = mtx[rhs_mask, :]  # ty:ignore[not-subscriptable]
+    rhs = mtx[rhs_mask, :]  # ty: ignore[not-subscriptable]
 
     if isinstance(lhs, np.ndarray):
-        lhs_mean, rhs_mean = np.mean(lhs, axis=0), np.mean(rhs, axis=0)  # ty:ignore[no-matching-overload]
+        lhs_mean, rhs_mean = np.mean(lhs, axis=0), np.mean(rhs, axis=0)  # ty: ignore[no-matching-overload]
     else:
-        lhs_mean, rhs_mean = lhs.mean(axis=0), rhs.mean(axis=0)  # ty:ignore[unresolved-attribute]
+        lhs_mean, rhs_mean = lhs.mean(axis=0), rhs.mean(axis=0)  # ty: ignore[missing-union-attribute]
         if len(lhs_mean.shape) > 1:
             lhs_mean = np.ravel(lhs_mean)
         if len(rhs_mean.shape) > 1:
@@ -134,11 +134,11 @@ def run_deg_mwu(
         batch_n = max(1, 125000000 // adata.n_obs)  # 125e6 ~= 1GB / 64bits, trying not to alloc more than a gig at a time
         for start in range(0, idx_arr.size, batch_n):
             slc = idx_arr[start : min(adata.n_vars, start + batch_n)]
-            lhs_i, rhs_i = lhs[:, slc].todense(), rhs[:, slc].todense()  # ty:ignore[unresolved-attribute, not-subscriptable, invalid-argument-type]
+            lhs_i, rhs_i = lhs[:, slc].todense(), rhs[:, slc].todense()  # ty: ignore[missing-union-attribute, not-subscriptable, invalid-argument-type]
             pvals[slc] = mannwhitneyu(lhs_i, rhs_i).pvalue * adata.n_vars
             del lhs_i, rhs_i
     else:
-        pvals[mask] = mannwhitneyu(lhs[:, mask], rhs[:, mask]).pvalue * adata.n_vars  # ty:ignore[not-subscriptable, invalid-argument-type]
+        pvals[mask] = mannwhitneyu(lhs[:, mask], rhs[:, mask]).pvalue * adata.n_vars  # ty: ignore[not-subscriptable, invalid-argument-type]
 
     lfc = np.full((adata.n_vars,), np.nan)
     lfc[mask] = np.log2(lhs_mean[mask] / rhs_mean[mask])
